@@ -2,7 +2,7 @@
 
 const request = require("supertest");
 const app = require("../../src/app");
-const repo = require("../../src/repositories/trades.repository");
+const repo = require("../../src/modules/trades/repositories/trades.repository");
 const { validTrade, invalidTrade } = require("../fixtures/trades");
 
 describe("Trade API", () => {

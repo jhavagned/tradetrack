@@ -3,7 +3,7 @@
 const express = require("express");
 const cors = require("cors");
 
-const tradeRoutes = require("./routes/trades.route");
+const tradeRoutes = require("./modules/trades/routes/trades.route");
 
 const app = express();
 

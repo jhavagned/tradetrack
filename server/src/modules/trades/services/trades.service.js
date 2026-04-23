@@ -1,4 +1,4 @@
-const validateTrade = require("../utils/validateTrade");
+const validateTrade = require("../validation/trades.validation");
 const TradesRepository = require("../repositories/trades.repository");
 
 const TradesService = {
