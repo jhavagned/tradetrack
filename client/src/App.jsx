@@ -7,6 +7,33 @@ import { useEffect, useState, useMemo } from "react";
 import { API_URL } from "./config/api.js";
 
 // =========================
+// Constants
+// =========================
+
+/**
+ * Trade type constants to avoid string mismatch bugs
+ */
+const TRADE_TYPES = {
+  BUY: "BUY",
+  SELL: "SELL"
+};
+
+/**
+ * Futures contract multipliers
+ * Used to calculate actual dollar P&L
+ */
+const SYMBOL_MULTIPLIERS = {
+  NQ: 20,
+  ES: 50,
+  YM: 5,
+  RTY: 50,
+  MNQ: 2,
+  MES: 5,
+  MYM: 0.5,
+  M2K: 5
+};
+
+// =========================
 // Component
 // =========================
 function App() {
@@ -19,7 +46,7 @@ function App() {
    */
   const [trade, setTrade] = useState({
     symbol: "",
-    type: "long",
+    type: TRADE_TYPES.BUY,
     entryPrice: "",
     exitPrice: "",
     quantity: "",
@@ -35,25 +62,6 @@ function App() {
   const [trades, setTrades] = useState([]);
 
   // =========================
-  // Constants
-  // =========================
-
-  /**
-   * Futures contract multipliers
-   * Used to calculate actual dollar P&L
-   */
-  const SYMBOL_MULTIPLIERS = {
-    NQ: 20,
-    ES: 50,
-    YM: 5,
-    RTY: 50,
-    MNQ: 2,
-    MES: 5,
-    MYM: 0.5,
-    M2K: 5
-  };
-
-  // =========================
   // Helpers
   // =========================
 
@@ -62,8 +70,22 @@ function App() {
  * Adds "+" sign for positive values
  */
 
+  // const formatCurrency = (value) => {
+  //   if (value === null || value === undefined) return "Open";
+
+  //   const sign = value > 0 ? "+" : "";
+
+  //   return (
+  //     sign +
+  //     value.toLocaleString("en-US", {
+  //       style: "currency",
+  //       currency: "USD",
+  //       minimumFractionDigits: 2
+  //     })
+  //   );
+  // };
   const formatCurrency = (value) => {
-    if (value === null || value === undefined) return "Open";
+    if (value == null) return "Open";
 
     const sign = value > 0 ? "+" : "";
 
@@ -78,8 +100,7 @@ function App() {
   };
 
   /**
-   * Returns color based on P&L value
-   * Used for UI styling
+   * UI color based on P&L
    */
   const getPnlColor = (value) => {
     if (value > 0) return "green";
@@ -88,25 +109,21 @@ function App() {
   };
 
   /**
-   * Calculates P&L for a single trade
-   *
-   * Formula:
-   * (exit - entry) * quantity * direction * multiplier
-   *
-   * Returns null if trade is still open
+   * Safe P&L calculation
+   * Handles BUY/SELL logic explicitly
    */
   const calculatePnL = (t) => {
-    if (!t.exitPrice) return null;
+    if (!t || t.exitPrice == null) return null;
 
-    const direction = t.type === "long" ? 1 : -1;
     const multiplier = SYMBOL_MULTIPLIERS[t.symbol?.toUpperCase()] || 1;
 
-    return (
-      (t.exitPrice - t.entryPrice) *
-      t.quantity *
-      direction *
-      multiplier
-    );
+    const isBuy = t.type === "BUY";
+
+    const diff = isBuy
+      ? (t.exitPrice - t.entryPrice)
+      : (t.entryPrice - t.exitPrice);
+
+    return diff * t.quantity * multiplier;
   };
 
   // =========================
@@ -115,8 +132,18 @@ function App() {
 
   /**
    * Total P&L across all trades
-   * Memoized for performance optimization
    */
+  // const totalPnl = useMemo(() => {
+  //   return trades.reduce((sum, t, i) => {
+  //     if (!t) {
+  //       console.log("🚨 Undefined trade at index:", i);
+  //       return sum;
+  //     }
+
+  //     const pnl = calculatePnL(t);
+  //     return sum + (pnl || 0);
+  //   }, 0);
+  // }, [trades]);
   const totalPnl = useMemo(() => {
     return trades.reduce((sum, t) => {
       const pnl = calculatePnL(t);
@@ -142,7 +169,8 @@ function App() {
   };
 
   /**
-   * Handles form submission
+   * Submit trade to backend
+   * Includes validation + safe state update
    * - Formats data
    * - Sends POST request
    * - Updates UI optimistically
@@ -153,6 +181,7 @@ function App() {
     const formattedTrade = {
       ...trade,
       symbol: trade.symbol.toUpperCase(),
+      type: trade.type.toUpperCase(),
       entryPrice: Number(trade.entryPrice),
       exitPrice: trade.exitPrice ? Number(trade.exitPrice) : null,
       quantity: Number(trade.quantity)
@@ -167,13 +196,26 @@ function App() {
 
       const data = await res.json();
 
+      // =========================
+      // API Guard
+      // =========================
+      if (!res.ok || data.status !== "success") {
+        console.error("API Error:", data.message);
+        return;
+      }
+      
+      // =========================
+      // Safe state update
       // Update UI without re-fetch
-      setTrades((prev) => [...prev, data.data]);
+      // =========================
+      if (data?.data) {
+        setTrades((prev) => [...prev, data.data]);
+      }
 
       // Reset form
       setTrade({
         symbol: "",
-        type: "long",
+        type: TRADE_TYPES.BUY,
         entryPrice: "",
         exitPrice: "",
         quantity: "",
@@ -197,10 +239,24 @@ function App() {
    * Fetch trades on initial load
    */
   useEffect(() => {
+    // const fetchTrades = async () => {
+    //   const res = await fetch(`${API_URL}/api/trades`);
+    //   const data = await res.json();
+    //   setTrades(data.data);
+    // };
+
+    // fetchTrades();
     const fetchTrades = async () => {
-      const res = await fetch(`${API_URL}/api/trades`);
-      const data = await res.json();
-      setTrades(data.data);
+      try {
+        const res = await fetch(`${API_URL}/api/trades`);
+        const data = await res.json();
+
+        if (data?.data) {
+          setTrades(data.data);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
     };
 
     fetchTrades();
@@ -212,9 +268,7 @@ function App() {
   return (
     <div style={styles.container}>
 
-      {/* =========================
-          HEADER / STATS
-      ========================= */}
+      {/* HEADER */}
       <div style={styles.header}>
         <h1>TradeTrack</h1>
 
@@ -223,17 +277,15 @@ function App() {
         </h2>
       </div>
 
-      {/* =========================
-          FORM SECTION
-      ========================= */}
+      {/* FORM */}
       <div style={styles.card}>
         <form onSubmit={handleSubmit} style={styles.form}>
 
           <input name="symbol" value={trade.symbol} onChange={handleChange} placeholder="Symbol" />
 
           <select name="type" value={trade.type} onChange={handleChange}>
-            <option value="long">Long</option>
-            <option value="short">Short</option>
+            <option value={TRADE_TYPES.BUY}>Buy</option>
+            <option value={TRADE_TYPES.SELL}>Sell</option>
           </select>
 
           <input name="entryPrice" value={trade.entryPrice} onChange={handleChange} placeholder="Entry Price" />
@@ -251,13 +303,11 @@ function App() {
         </form>
       </div>
 
-      {/* =========================
-          TRADES SECTION
-      ========================= */}
+      {/* TRADES */}
       <div style={styles.card}>
         <h2>Trades</h2>
 
-        {trades.map((t) => {
+        {trades.filter(Boolean).map((t) => {
           const pnl = calculatePnL(t);
 
           return (
