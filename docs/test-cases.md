@@ -1,5 +1,5 @@
- 1. Trade Creation
-Test Case 1.1 — Successful Trade Creation
+1.  Trade Creation
+    Test Case 1.1 — Successful Trade Creation
 
 Given: Valid trade input
 When: User submits the form
@@ -30,7 +30,7 @@ When: Response is received
 Then: Form fields reset to default values
 
 2. Trade List
-Test Case 2.1 — Fetch Trades
+   Test Case 2.1 — Fetch Trades
 
 Given: Backend has trades stored
 When: Page loads
@@ -49,18 +49,18 @@ When: Trade is rendered
 Then: "Open" is displayed instead of exit price
 
 3. Individual Trade P&L
-Test Case 3.1 — Long Profit
+   Test Case 3.1 — Buy Profit
 
 Given: entry = 100, exit = 110
 When: Trade is rendered
 Then: P&L is positive
 
-Test Case 3.2 — Long Loss
+Test Case 3.2 — Buy Loss
 
 Given: entry = 100, exit = 90
 Then: P&L is negative
 
-Test Case 3.3 — Short Profit
+Test Case 3.3 — Sell Profit
 
 Given: entry = 100, exit = 90
 Then: P&L is positive
@@ -76,7 +76,7 @@ Given: no exitPrice
 Then: P&L shows "Open"
 
 4. Total P&L
-Test Case 4.1 — Sum of Trades
+   Test Case 4.1 — Sum of Trades
 
 Given: multiple closed trades
 Then: totalPnl equals sum of individual P&L
@@ -96,8 +96,8 @@ Test Case 4.4 — Color Logic
 Given: totalPnl > 0
 Then: color is green
 
- 5. Validation 
-Test Case 5.1 — Required Fields
+5.  Validation
+    Test Case 5.1 — Required Fields
 
 Reject empty symbol, entryPrice, quantity
 
