@@ -1,6 +1,8 @@
 // /server/src/modules/controllers/trades.controller.js
 
 const TradesService = require("../services/trades.service");
+const createLogger = require("../../../utils/logger");
+const logger = createLogger("trades.controller");
 
 /**
  * Standard success response helper
@@ -35,13 +37,27 @@ const TradesController = {
    * Fetch all trades
    */
   getAll: async (req, res) => {
+    logger.info("GET /api/trades request received");
+
     try {
       const trades = await TradesService.getAllTrades();
 
-      return sendSuccess(res, {
+      logger.info("Fetched all trades successfully", {
+        count: trades.length,
+      });
+
+      const response = sendSuccess(res, {
         data: trades,
       });
+
+      logger.info("GET /api/trades response sent");
+
+      return response;
     } catch (err) {
+      logger.error("Failed to fetch trades", {
+        error: err.message,
+      });
+
       return sendError(res, err);
     }
   },
@@ -51,15 +67,31 @@ const TradesController = {
    * Create a new trade
    */
   create: async (req, res) => {
+    logger.info("Trade creation request received", {
+      symbol: req.body?.symbol,
+      type: req.body?.type,
+    });
+
     try {
       const trade = await TradesService.createTrade(req.body);
 
-      return sendSuccess(res, {
+      const response = sendSuccess(res, {
         statusCode: 201,
         message: "Trade created",
         data: trade,
       });
+
+      logger.info("Trade creation response sent", {
+        tradeId: trade.id,
+      });
+
+      return response;
     } catch (err) {
+      logger.error("Trade creation failed in controller", {
+        error: err.message,
+        payload: req.body,
+      });
+
       return sendError(res, err);
     }
   },

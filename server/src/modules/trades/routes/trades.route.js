@@ -1,3 +1,5 @@
+// /server/src/modules/routes/trades.route.js
+
 const express = require("express");
 const TradesController = require("../controllers/trades.controller");
 
