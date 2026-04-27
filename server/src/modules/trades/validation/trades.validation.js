@@ -10,46 +10,89 @@ const TRADE_TYPES = Object.freeze({
 });
 
 /**
+ * Standard validation error shape
+ *
+ * @param {string} message - Human-readable error message
+ * @param {string} [field] - Field associated with the error
+ * @returns {{ message: string, field?: string }}
+ */
+function createValidationError(message, field) {
+  return field ? { message, field } : { message };
+}
+
+/**
  * Validates incoming trade payload
- * Returns error message string OR null if valid
+ * 
+ * @param {Object} trade - Incoming trade payload
+ * @returns {null | { message: string, field?: string }}
  */
 function validateTrade(trade) {
-  const { symbol, type, entryPrice, quantity, exitPrice, exitTime } = trade;
+  if (!trade || typeof trade !== "object") {
+    return createValidationError("Invalid payload");
+  }
+
+  const {
+    symbol,
+    type,
+    entryPrice,
+    quantity,
+    exitPrice,
+    exitTime,
+  } = trade;
 
   // =========================
   // Required fields
   // =========================
-  if (!symbol || !type || entryPrice == null || quantity == null) {
-    return "Missing required fields";
+  if (!symbol) {
+    return createValidationError("Symbol is required", "symbol");
+  }
+
+  if (!type) {
+    return createValidationError("Trade type is required", "type");
+  }
+
+  if (entryPrice == null) {
+    return createValidationError("Entry price is required", "entryPrice");
+  }
+
+  if (quantity == null) {
+    return createValidationError("Quantity is required", "quantity");
   }
 
   // =========================
   // Enum validation
   // =========================
   if (!Object.values(TRADE_TYPES).includes(type)) {
-    return "Invalid trade type";
+    return createValidationError("Invalid trade type", "type");
   }
 
   // =========================
   // Numeric validation (NaN)
   // =========================
-  if (
-    isNaN(Number(entryPrice)) ||
-    isNaN(Number(quantity)) ||
-    (exitPrice != null && isNaN(Number(exitPrice)))
-  ) {
-    return "Invalid numeric values";
+  if (isNaN(Number(entryPrice))) {
+    return createValidationError("Entry price must be a number", "entryPrice");
   }
 
+  if (isNaN(Number(quantity))) {
+    return createValidationError("Quantity must be a number", "quantity");
+  }
+
+  if (exitPrice != null && isNaN(Number(exitPrice))) {
+    return createValidationError("Exit price must be a number", "exitPrice");
+  }
   // =========================
   // Numeric validation (range)
   // =========================
-  if (
-    Number(entryPrice) <= 0 ||
-    Number(quantity) <= 0 ||
-    (exitPrice != null && Number(exitPrice) <= 0)
-  ) {
-    return "Invalid numeric values";
+  if (Number(entryPrice) <= 0) {
+    return createValidationError("Entry price must be greater than 0", "entryPrice");
+  }
+
+  if (Number(quantity) <= 0) {
+    return createValidationError("Quantity must be greater than 0", "quantity");
+  }
+
+  if (exitPrice != null && Number(exitPrice) <= 0) {
+    return createValidationError("Exit price must be greater than 0", "exitPrice");
   }
 
   // =========================
@@ -59,7 +102,10 @@ function validateTrade(trade) {
   const hasExitTime = !!exitTime;
 
   if ((hasExitPrice || hasExitTime) && !(hasExitPrice && hasExitTime)) {
-    return "Incomplete exit data";
+    return createValidationError(
+      "Exit price and exit time must both be provided",
+      "exit"
+    );
   }
 
   return null;
