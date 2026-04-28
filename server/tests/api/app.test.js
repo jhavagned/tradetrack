@@ -140,4 +140,59 @@ describe("App Infrastructure", () => {
     expect(res.body).toHaveProperty("status", "error");
     expect(res.body).toHaveProperty("message");
   });
+
+  // =====================================================
+  // Test Case 2.6
+  // CONCURRENCY SAFETY (AsyncLocalStorage validation)
+  // =====================================================
+  it("maintains unique requestIds under concurrent requests", async () => {
+    const requests = Array.from({ length: 10 }).map(() =>
+      request(app).get("/api/trades"),
+    );
+
+    const responses = await Promise.all(requests);
+
+    const ids = responses.map((res) => res.headers["x-request-id"]);
+    const uniqueIds = new Set(ids);
+
+    expect(uniqueIds.size).toBe(10);
+  });
+
+  // =====================================================
+  // Test Case 2.7
+  // CONCURRENT MIXING / CONTEXT LEAKAGE SAFETY
+  // =====================================================
+  it("does not leak request context between concurrent requests", async () => {
+    const results = [];
+
+    const requests = Array.from({ length: 5 }).map(() =>
+      request(app)
+        .post("/api/trades")
+        .send(validTrade())
+        .then((res) => {
+          results.push({
+            requestId: res.headers["x-request-id"],
+            status: res.status,
+          });
+        }),
+    );
+
+    await Promise.all(requests);
+
+    const ids = results.map((r) => r.requestId);
+    const uniqueIds = new Set(ids);
+
+    expect(uniqueIds.size).toBe(5);
+  });
+
+  // =========================
+  // Test Case 2.8
+  // ERROR RESPONSE STILL TRACKED
+  // =========================
+  it("includes x-request-id even on error responses", async () => {
+    const res = await request(app).post("/api/trades").send({}); // invalid payload
+
+    expect(res.status).toBe(400);
+    expect(res.headers["x-request-id"]).toBeDefined();
+  });
 });

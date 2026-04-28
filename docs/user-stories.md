@@ -169,3 +169,28 @@
 - Repository state resets between tests
 - No shared state leakage between tests
 - Integration tests still validate full request flow
+
+# 11. Backend Logging & Observability System
+
+**As a** developer  
+**I want** a structured logging system across the backend (requests, errors, and service-level events)  
+**So that** I can debug issues, trace request flows, and monitor system behavior in a production-like way
+
+---
+
+## Acceptance Criteria:
+
+- A centralized logging system is introduced in the backend
+- Each incoming HTTP request is assigned a unique request ID
+- Request logs include:
+  - HTTP method
+  - endpoint
+  - status code
+  - response time
+  - request ID
+- Errors are logged separately with stack traces
+- Logs are structured (JSON format preferred)
+- Logging is integrated into Express via middleware
+- Service-level events (e.g. trade creation) can optionally log internal actions
+- Logging does not affect API response structure or performance significantly
+- Existing tests continue to pass without modification
