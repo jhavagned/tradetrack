@@ -1,4 +1,4 @@
-// /server/src/modules/services/trades.service.js
+// /server/src/modules/trades/services/trades.service.js
 
 const { validateTrade } = require("../validation/trades.validation");
 const TradesRepository = require("../repositories/trades.repository");

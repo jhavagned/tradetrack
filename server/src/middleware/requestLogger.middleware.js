@@ -28,38 +28,45 @@ const requestLogger = (req, res, next) => {
   req.requestId = requestId;
   res.setHeader("x-request-id", requestId);
 
+  const logger = createLogger("request.middleware");
+
   // Initialize Async Context
-  runWithContext({ requestId }, () => {
-    const logger = createLogger("request.middleware");
+  runWithContext(
+    {
+      requestId,
+      sessionId: null,
+      userId: null,
+    },
+    () => {
+      // Log incoming request
+      logger.info("Incoming request", {
+        method: req.method,
+        url: req.originalUrl,
+      });
 
-    // Log incoming request
-    logger.info("Incoming request", {
-      method: req.method,
-      url: req.originalUrl,
-    });
+      const finalize = (level) => {
+        if (completed) return;
+        completed = true;
 
-    const finalize = (level) => {
-      if (completed) return;
-      completed = true;
+        const duration = Date.now() - startTime;
 
-      const duration = Date.now() - startTime;
+        logger[level](
+          level === "warn" ? "Request closed prematurely" : "Request completed",
+          {
+            method: req.method,
+            url: req.originalUrl,
+            statusCode: res.statusCode,
+            durationMs: duration,
+          },
+        );
+      };
 
-      logger[level](
-        level === "warn" ? "Request closed prematurely" : "Request completed",
-        {
-          method: req.method,
-          url: req.originalUrl,
-          statusCode: res.statusCode,
-          durationMs: duration,
-        },
-      );
-    };
+      res.on("finish", () => finalize("info"));
+      res.on("close", () => finalize("warn"));
 
-    res.on("finish", () => finalize("info"));
-    res.on("close", () => finalize("warn"));
-
-    next();
-  });
+      next();
+    },
+  );
 };
 
 module.exports = requestLogger;

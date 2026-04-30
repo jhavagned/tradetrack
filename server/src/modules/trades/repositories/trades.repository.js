@@ -1,4 +1,4 @@
-// /server/src/modules/repositories/trades.repository.js
+// /server/src/modules/trades/repositories/trades.repository.js
 
 const createLogger = require("../../../utils/logger");
 const logger = createLogger("trades.repository");
