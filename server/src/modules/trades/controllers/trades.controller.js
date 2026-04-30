@@ -1,4 +1,4 @@
-// /server/src/modules/controllers/trades.controller.js
+// /server/src/modules/trades/controllers/trades.controller.js
 
 const TradesService = require("../services/trades.service");
 const createLogger = require("../../../utils/logger");

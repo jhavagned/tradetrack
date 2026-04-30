@@ -1,4 +1,4 @@
-// /server/src/modules/validation/trades.validation.js
+// /server/src/modules/trades/validation/trades.validation.js
 
 /**
  * Trade type enum
@@ -22,7 +22,7 @@ function createValidationError(message, field) {
 
 /**
  * Validates incoming trade payload
- * 
+ *
  * @param {Object} trade - Incoming trade payload
  * @returns {null | { message: string, field?: string }}
  */
@@ -31,14 +31,7 @@ function validateTrade(trade) {
     return createValidationError("Invalid payload");
   }
 
-  const {
-    symbol,
-    type,
-    entryPrice,
-    quantity,
-    exitPrice,
-    exitTime,
-  } = trade;
+  const { symbol, type, entryPrice, quantity, exitPrice, exitTime } = trade;
 
   // =========================
   // Required fields
@@ -84,7 +77,10 @@ function validateTrade(trade) {
   // Numeric validation (range)
   // =========================
   if (Number(entryPrice) <= 0) {
-    return createValidationError("Entry price must be greater than 0", "entryPrice");
+    return createValidationError(
+      "Entry price must be greater than 0",
+      "entryPrice",
+    );
   }
 
   if (Number(quantity) <= 0) {
@@ -92,7 +88,10 @@ function validateTrade(trade) {
   }
 
   if (exitPrice != null && Number(exitPrice) <= 0) {
-    return createValidationError("Exit price must be greater than 0", "exitPrice");
+    return createValidationError(
+      "Exit price must be greater than 0",
+      "exitPrice",
+    );
   }
 
   // =========================
@@ -104,7 +103,7 @@ function validateTrade(trade) {
   if ((hasExitPrice || hasExitTime) && !(hasExitPrice && hasExitTime)) {
     return createValidationError(
       "Exit price and exit time must both be provided",
-      "exit"
+      "exit",
     );
   }
 
