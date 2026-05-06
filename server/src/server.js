@@ -5,6 +5,7 @@ require("dotenv").config();
 const app = require("./app");
 const createLogger = require("./utils/logger");
 const { startSessionCleanupJob } = require("./modules/auth/repositories/session.repository");
+const { pool } = require("./db/config/db");
 
 const logger = createLogger("server");
 
@@ -50,9 +51,14 @@ const PORT = process.env.PORT || 5000;
  * - PORT: Server port (default: 5000)
  * - NODE_ENV: Environment (development | production)
  * - SESSION_TTL: Session lifetime in ms
+ * - DB_HOST: Database host
+ * - DB_PORT: Database port
+ * - DB_NAME: Database name
+ * - DB_USER: Database user
+ * - DB_PASSWORD: Database password
  *
  * =========================================================
- * FUTURE IMPROVEMENTS:
+ * TODO:
  * - Replace in-memory session store with Redis
  * - Add graceful shutdown handling (SIGINT, SIGTERM)
  * - Add health check endpoints (/health)
@@ -60,19 +66,52 @@ const PORT = process.env.PORT || 5000;
  * =========================================================
  */
 
-// Start background job for cleaning expired sessions
-startSessionCleanupJob();
+/*
+ * Validates the database connection on startup.
+ * Acquires a client from the pool and immediately releases it.
+ * Logs success or failure clearly before the server starts.
+ */
+const connectDB = async () => {
+  try {
+    const client = await pool.connect();
+    client.release();
+    logger.info("Database connection established", {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      database: process.env.DB_NAME,
+    });
+  } catch (error) {
+    logger.error("Database connection failed", {
+      message: error.message,
+    });
+    process.exit(1); // exit — no point starting the app without a DB
+  }
+};
 
-/**
+/*
+ * Main startup function.
+ * Runs DB validation first, then starts the server.
+ * If DB connection fails the process exits before the server starts.
+ */
+const start = async () => {
+  await connectDB();
+
+  // Start background job for cleaning expired sessions
+  startSessionCleanupJob();
+
+  /**
  * Application entry point
  *
  * RESPONSIBILITIES:
  * - Load environment configuration
  * - Start HTTP server
  */
-app.listen(PORT, () => {
-  logger.info("Server started successfully", {
-    port: Number(PORT),
-    env: process.env.NODE_ENV,
+  app.listen(PORT, () => {
+    logger.info("Server started successfully", {
+      port: Number(PORT),
+      env: process.env.NODE_ENV,
+    });
   });
-}); 
+};
+
+start();

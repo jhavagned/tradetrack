@@ -1,0 +1,40 @@
+# /docker-compose.yml 
+
+# docker-compose.yml
+# Defines the services (containers) needed to run TradeTrack locally.
+# Run with: docker-compose up -d
+# Stop with: docker-compose down
+
+services:
+
+  # PostgreSQL database container
+  db:
+    # Official Postgres image from Docker Hub (pinned to v16 for stability)
+    image: postgres:16
+
+    # Restart the container automatically if it crashes,
+    # but not if it was manually stopped
+    restart: unless-stopped
+
+    # These vars configure the Postgres instance on first boot.
+    # Values are pulled from the root .env file
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB} # database name to create
+      POSTGRES_USER: ${POSTGRES_USER} # default superuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # superuser password
+
+    # Maps host port to container port.
+    # Format: "host:container"
+    # Allows the Node app and tools like psql/TablePlus to connect locally.
+    ports:
+      - "${PORT}:5432"
+
+    # Persists database data across container restarts.
+    # Without this, all data is lost when the container stops.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+# Named volume managed by Docker.
+# Data lives on your machine outside the container lifecycle.
+volumes:
+  postgres_data:
