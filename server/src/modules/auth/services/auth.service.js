@@ -14,7 +14,45 @@ const { createUser, findByEmail } = require("../repositories/user.repository");
 const SALT_ROUNDS = 10;
 
 /**
- * Register user (for testing/demo)
+ * =========================================================
+ * AUTH SERVICE
+ * =========================================================
+ *
+ * PURPOSE:
+ * Core business logic for authentication.
+ *
+ * RESPONSIBILITIES:
+ * - User registration (hashing + persistence)
+ * - Credential validation (login)
+ * - Session lifecycle management
+ *
+ * IMPORTANT DESIGN DECISIONS:
+ * - Session creation is centralized in ONE place
+ *   -> createLoginSession()
+ *
+ * - loginWithPassword() ONLY validates credentials
+ *   -> does NOT create sessions
+ *
+ * This prevents:
+ * Duplicate sessions
+ * Hidden side effects
+ * Debugging confusion
+ *
+ * =========================================================
+ */
+
+/**
+ * =========================================================
+ * REGISTER USER
+ * =========================================================
+ *
+ * FLOW:
+ * 1. Check if user already exists
+ * 2. Hash password securely
+ * 3. Persist user
+ *
+ * RETURNS:
+ * - user object (without exposing password)
  */
 const registerUser = async ({ email, password }) => {
   const existing = findByEmail(email);
@@ -37,7 +75,20 @@ const registerUser = async ({ email, password }) => {
 };
 
 /**
- * Login with email + password
+ * =========================================================
+ * LOGIN (CREDENTIAL VALIDATION ONLY)
+ * =========================================================
+ *
+ * PURPOSE:
+ * Validate email + password WITHOUT side effects
+ *
+ * IMPORTANT:
+ * Does not create session
+ * ONLY verifies credentials
+ *
+ * RETURNS:
+ * - user object if valid
+ * - null if invalid
  */
 const loginWithPassword = async ({ email, password }) => {
   const user = findByEmail(email);
@@ -48,35 +99,32 @@ const loginWithPassword = async ({ email, password }) => {
 
   if (!isMatch) return null;
 
-  const sessionId = crypto.randomUUID();
+  //const sessionId = crypto.randomUUID();
 
-  createSession(sessionId, user.userId);
+  //createSession(sessionId, user.userId);
 
   return {
-    sessionId,
     userId: user.userId,
+    email: user.email,
   };
 };
 
 /**
- * Validate session (unchanged)
+ * =========================================================
+ * CREATE LOGIN SESSION (SINGLE SOURCE OF TRUTH)
+ * =========================================================
+ *
+ * PURPOSE:
+ * Create a new session AFTER credentials are validated
+ *
+ * FLOW:
+ * 1. Generate sessionId
+ * 2. Store session
+ * 3. Return sessionId for cookie usage
+ *
+ * RETURNS:
+ * - { sessionId }
  */
-const validateSession = (sessionId) => {
-  if (!sessionId) return null;
-
-  const session = getSession(sessionId);
-  if (!session) return null;
-
-  return {
-    sessionId,
-    userId: session.userId,
-  };
-};
-
-// const logout = (sessionId) => {
-//   deleteSession(sessionId);
-// };
-
 const createLoginSession = (userId) => {
   if (!userId) {
     throw new Error("userId is required to create a session");
@@ -90,7 +138,39 @@ const createLoginSession = (userId) => {
 };
 
 /**
- * Logout user (invalidate session)
+ * =========================================================
+ * VALIDATE SESSION
+ * =========================================================
+ *
+ * PURPOSE:
+ * Check if session exists and is valid
+ *
+ * RETURNS:
+ * - { sessionId, userId } if valid
+ * - null if invalid/expired
+ */
+const validateSession = (sessionId) => {
+  if (!sessionId) return null;
+
+  const session = getSession(sessionId);
+  if (!session) return null;
+
+  return {
+    sessionId,
+    userId: session.userId,
+  };
+};
+
+/**
+ * =========================================================
+ * LOGOUT (SESSION INVALIDATION)
+ * =========================================================
+ *
+ * PURPOSE:
+ * Destroy session on logout
+ *
+ * SAFE:
+ * - No-op if sessionId missing
  */
 const logout = (sessionId) => {
   if (!sessionId) return;

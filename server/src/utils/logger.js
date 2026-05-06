@@ -5,7 +5,9 @@ const { getContext } = require("./asyncRequestContext");
 const ENV = process.env.NODE_ENV || "development";
 
 /**
- * Log level priority map
+ * =========================================================
+ * LOG LEVELS
+ * =========================================================
  */
 const LOG_LEVELS = {
   debug: 10,
@@ -15,24 +17,23 @@ const LOG_LEVELS = {
 };
 
 /**
- * Determine active log level
+ * Normalize and resolve active log level
  */
 function resolveLogLevel() {
-  if (process.env.LOG_LEVEL) {
-    return process.env.LOG_LEVEL;
+  const envLevel = process.env.LOG_LEVEL;
+
+  if (envLevel) {
+    return envLevel.toLowerCase();
   }
 
   if (ENV === "production") return "warn";
   if (ENV === "test") return "error";
 
-  return "debug"; // development default
+  return "debug";
 }
 
 const ACTIVE_LOG_LEVEL = resolveLogLevel();
 
-/**
- * Validate configured log level
- */
 if (!LOG_LEVELS[ACTIVE_LOG_LEVEL]) {
   throw new Error(`Invalid LOG_LEVEL: ${ACTIVE_LOG_LEVEL}`);
 }
@@ -40,7 +41,7 @@ if (!LOG_LEVELS[ACTIVE_LOG_LEVEL]) {
 const CURRENT_LEVEL = LOG_LEVELS[ACTIVE_LOG_LEVEL];
 
 /**
- * Determines if a log should be emitted
+ * Check if log should be emitted
  */
 function shouldLog(level) {
   if (!LOG_LEVELS[level]) {
@@ -51,34 +52,59 @@ function shouldLog(level) {
 }
 
 /**
- * Pretty formatter (dev only)
+ * Safe context extraction
  */
-function formatPrettyLog({
-  timestamp,
-  level,
-  source,
-  requestId,
-  message,
-  meta,
-}) {
-  return `[${timestamp}] [${level.toUpperCase()}] [${source}] [${requestId}] : "${message}" ${
-    Object.keys(meta).length ? JSON.stringify(meta) : ""
-  }`;
+function getRequestContext() {
+  const ctx = getContext();
+
+  return {
+    requestId: ctx?.requestId || "no-request",
+    sessionId: ctx?.sessionId || null,
+    userId: ctx?.userId || null,
+  };
 }
 
 /**
- * Internal base logging function.
+ * Pretty dev formatter 
+ */
+// function formatPrettyLog({
+//   timestamp,
+//   level,
+//   source,
+//   requestId,
+//   message,
+//   meta,
+// }) {
+//   return `[${timestamp}] [${level.toUpperCase()}] [${source}] [${requestId}] : "${message}" ${
+//     Object.keys(meta).length ? JSON.stringify(meta) : ""
+//   }`;
+// }
+
+function formatPrettyLog(entry) {
+  const { timestamp, level, source, requestId, message, meta } = entry;
+
+  const metaStr =
+    meta && Object.keys(meta).length ? JSON.stringify(meta) : "";
+
+  return `[${timestamp}] [${level.toUpperCase()}] [${source}] [${requestId}] "${message}" ${metaStr}`;
+}
+
+/**
+ * Base logger engine
  */
 function baseLog(level, message, meta = {}, source = "unknown") {
   if (!shouldLog(level)) return;
 
-  const context = getContext();
+  //const context = getContext();
+  const context = getRequestContext();
 
   const logEntry = {
     timestamp: new Date().toISOString(),
     level,
     source,
     requestId: context?.requestId || "N/A",
+    sessionId: context?.sessionId || "N/A",
+    userId: context?.userId || "N/A",
     message,
     meta,
   };
@@ -92,7 +118,7 @@ function baseLog(level, message, meta = {}, source = "unknown") {
 }
 
 /**
- * Scoped logger factory
+ * Logger factory
  */
 function createLogger(source) {
   if (!source) {
@@ -100,6 +126,11 @@ function createLogger(source) {
   }
 
   return {
+    /**
+     * Debug logs (verbose, development-only insights)
+     */
+    debug: (message, meta) => baseLog("debug", message, meta, source),
+    
     /**
      * Informational logs (normal operation, successful flows)
      */
@@ -114,11 +145,6 @@ function createLogger(source) {
      * Error logs (failures, exceptions)
      */
     error: (message, meta) => baseLog("error", message, meta, source),
-
-    /**
-     * Debug logs (verbose, development-only insights)
-     */
-    debug: (message, meta) => baseLog("debug", message, meta, source),
   };
 }
 

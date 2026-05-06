@@ -1,25 +1,44 @@
 // /server/src/middleware/auth.middleware.js
 
 const { validateSession } = require("../modules/auth/services/auth.service");
-const { runWithContext, getContext } = require("../utils/asyncRequestContext");
+const { getContext, updateContext } = require("../utils/asyncRequestContext");
+
 const createLogger = require("../utils/logger");
 
 const logger = createLogger("auth.middleware");
 
 /**
- * Authentication Middleware
+ * =========================================================
+ * AUTHENTICATION MIDDLEWARE
+ * =========================================================
  *
+ * PURPOSE:
+ * Protects API routes by validating user sessions.
+ *
+ * =========================================================
  * RESPONSIBILITIES:
- * - Extract sessionId from cookie or header
- * - Validate session
- * - Attach user identity to request context
- * - Enrich AsyncLocalStorage context
+ * - Extract sessionId from request (cookie or header)
+ * - Validate session against session store
+ * - Attach authenticated user to request object
+ * - Enrich async request context (AsyncLocalStorage)
  * - Block unauthorized requests
+ *
+ * =========================================================
+ * SECURITY MODEL:
+ * - SessionId is httpOnly cookie (primary)
+ * - Header fallback supported for API clients
+ * - Backend is single source of truth
+ * =========================================================
  */
+
 const authMiddleware = (req, res, next) => {
   const sessionId = req.cookies?.sessionId || req.headers["x-session-id"];
 
-  // 1. No session provided
+  /**
+   * =========================================================
+   * 1. MISSING SESSION
+   * =========================================================
+   */
   if (!sessionId) {
     logger.warn("Missing sessionId", {
       path: req.originalUrl,
@@ -31,7 +50,11 @@ const authMiddleware = (req, res, next) => {
     });
   }
 
-  // 2. Validate session BEFORE touching context
+  /**
+   * =========================================================
+   * 2. SESSION VALIDATION
+   * =========================================================
+   */
   const session = validateSession(sessionId);
   const normalizedSessionId = sessionId || "missing";
 
@@ -47,24 +70,35 @@ const authMiddleware = (req, res, next) => {
     });
   }
 
-  /*
-   * 3. Enrich existing AsyncLocalStorage context
-   * Get existing context (from requestLogger)
+  /**
+   * =========================================================
+   * 3. ASYNC CONTEXT ENRICHMENT
+   * =========================================================
+   *
+   * IMPORTANT:
+   * Only mutate context if it exists and is mutable.
    */
   const context = getContext() || {};
 
-  if (context) {
-    context.sessionId = sessionId;
-    context.userId = session.userId;
-  }
+  //if (context) { context.sessionId = sessionId; context.userId = session.userId; }
+  
+  updateContext({
+    sessionId,
+    userId: session.userId,
+  });
 
-  // 4. Attach to request object
+  /**
+   * =========================================================
+   * 4. REQUEST ENRICHMENT
+   * =========================================================
+   */
   req.sessionId = sessionId;
   req.userId = session.userId;
 
   logger.info("User authenticated", {
     userId: session.userId,
     sessionId,
+    path: req.originalUrl,
   });
 
   next();
