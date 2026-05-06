@@ -1,72 +1,69 @@
 // /server/src/middleware/requestLogger.middleware.js
 
 const crypto = require("crypto");
-const { runWithContext } = require("../utils/asyncRequestContext");
+const { runWithContext, updateContext } = require("../utils/asyncRequestContext");
 const createLogger = require("../utils/logger");
 
 /**
- * Request Logging Middleware
+ * =========================================================
+ * REQUEST LOGGER MIDDLEWARE
+ * =========================================================
  *
+ * PURPOSE:
+ * Initializes request tracing + logging lifecycle.
+ *
+ * =========================================================
  * RESPONSIBILITIES:
- * - Generate and attach requestId
- * - Initialize async context
- * - Log incoming request
+ * - Generate unique requestId
+ * - Initialize AsyncLocalStorage context
+ * - Log request start
  * - Track request duration
- * - Log response completion
- *
- * LOG FLOW:
- * Incoming request -> log start
- * -> request handled by app
- * -> response finished -> log completion
+ * - Log request completion/failure
+ * =========================================================
  */
+
 const requestLogger = (req, res, next) => {
   const requestId = crypto.randomUUID();
   const startTime = Date.now();
-  let completed = false;
-
-  // Attach requestId to request + response
-  req.requestId = requestId;
-  res.setHeader("x-request-id", requestId);
+  let finished = false;
 
   const logger = createLogger("request.middleware");
 
-  // Initialize Async Context
-  runWithContext(
-    {
-      requestId,
-      sessionId: null,
-      userId: null,
-    },
+  // Attach requestId to HTTP layer
+  req.requestId = requestId;
+  res.setHeader("x-request-id", requestId);
+
+  /**
+   * Initialize clean request context
+   */
+  runWithContext({ requestId },
     () => {
-      // Log incoming request
       logger.info("Incoming request", {
         method: req.method,
         url: req.originalUrl,
+        requestId,
       });
 
-      const finalize = (level) => {
-        if (completed) return;
-        completed = true;
+      const finalize = (level = "info", message = "Request completed") => {
+        if (finished) return;
+        finished = true;
 
-        const duration = Date.now() - startTime;
+        const durationMs = Date.now() - startTime;
 
-        logger[level](
-          level === "warn" ? "Request closed prematurely" : "Request completed",
-          {
+        logger[level](message, {
             method: req.method,
             url: req.originalUrl,
             statusCode: res.statusCode,
-            durationMs: duration,
-          },
-        );
+            durationMs,
+            requestId,
+        });
       };
 
       res.on("finish", () => finalize("info"));
-      res.on("close", () => finalize("warn"));
+      res.on("close", () => finalize("warn", "Request closed prematurely"));
 
       next();
-    },
-  );
+    });
 };
 
 module.exports = requestLogger;

@@ -1,4 +1,4 @@
-// /server/src/modules/auth/controllers/trades.controller.js
+// /server/src/modules/auth/controllers/auth.controller.js
 
 const {
   registerUser,
@@ -14,6 +14,44 @@ const logger = createLogger("auth.controller");
 const { validateLogin } = require("../validation/auth.validation");
 
 /**
+ * =========================================================
+ * AUTH CONTROLLER
+ * =========================================================
+ *
+ * PURPOSE:
+ * Handles all authentication-related HTTP requests.
+ *
+ * This includes:
+ * - User registration
+ * - User login (session creation)
+ * - Logout (session destruction)
+ * - Session introspection (/me)
+ *
+ * =========================================================
+ * AUTH FLOW OVERVIEW:
+ *
+ * LOGIN:
+ * 1. Validate credentials
+ * 2. Verify user
+ * 3. Create session
+ * 4. Set httpOnly cookie
+ *
+ * LOGOUT:
+ * 1. Extract sessionId
+ * 2. Destroy session in store
+ * 3. Clear cookie
+ *
+ * ME:
+ * 1. Require auth middleware
+ * 2. Return validated userId
+ *
+ * =========================================================
+ */
+
+/**
+ * =========================================================
+ * REGISTER USER
+ * =========================================================
  * POST /api/auth/register
  */
 const register = async (req, res) => {
@@ -48,7 +86,12 @@ const register = async (req, res) => {
 };
 
 /**
+ * =========================================================
+ * LOGIN USER
+ * =========================================================
  * POST /api/auth/login
+ *
+ * Creates session + sets cookie
  */
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -61,8 +104,8 @@ const login = async (req, res) => {
     });
   }
 
-  try {
-    // 1. Validate credentials
+  try { 
+    // 1. Authenticate user
     const user = await loginWithPassword({ email, password });
 
     if (!user) {
@@ -75,7 +118,7 @@ const login = async (req, res) => {
     // 2. Create Session
     const session = await createLoginSession(user.userId);
 
-    // 3. Set Cookie
+    // 3. Set session cookie
     res.cookie("sessionId", session.sessionId, {
       httpOnly: true,
       sameSite: "lax",
@@ -97,17 +140,59 @@ const login = async (req, res) => {
 };
 
 /**
+ * =========================================================
+ * LOGOUT USER
+ * =========================================================
  * POST /api/auth/logout
+ *
+ * Destroys session and clears cookie
  */
 const handleLogout = (req, res) => {
-  const sessionId = req.cookies?.sessionId || req.headers["x-session-id"];
+  const sessionId = req.sessionId || req.cookies?.sessionId || req.headers["x-session-id"];
 
-  logout(sessionId);
+  if (sessionId) {
+    logout(sessionId);
+  }
 
-  res.clearCookie("sessionId");
+  // Clear cookie (match options used when setting it)
+  res.clearCookie("sessionId", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: false, 
+  });
 
-  return res.json({
+  logger.info("User logged out", {
+    userId: req.userId || "unknown",
+    sessionId: sessionId || "missing",
+  });
+
+  return res.status(200).json({
     status: "success",
+  });
+};
+
+/**
+ * =========================================================
+ * GET CURRENT USER (/me)
+ * =========================================================
+ *
+ * Requires auth middleware to populate req.userId
+ */
+const getMe = (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({
+      status: "error",
+      message: "Unauthorized",
+    });
+  }
+
+  logger.info("Fetched current user", { userId: req.userId });
+  
+  res.status(200).json({
+    status: "success",
+    data: {
+      userId: req.userId,
+    },
   });
 };
 
@@ -115,4 +200,5 @@ module.exports = {
   register,
   login,
   handleLogout,
+  getMe,
 };
