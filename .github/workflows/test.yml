@@ -1,0 +1,125 @@
+# /.github/workflows/test.yml
+
+# ============================================================
+# Test Workflow — TradeTrack
+# ============================================================
+# Runs the full test suite on every pull request targeting main.
+# No deployment — this workflow is test-only.
+# ============================================================
+
+name: Test
+
+# ------------------------------------------------------------
+# Trigger: run on any PR that targets main
+# ------------------------------------------------------------
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+jobs:
+  # ------------------------------------------------------------
+  # Job: test
+  # Spins up Postgres, runs migrations, then executes Jest
+  # ------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+
+    # ----------------------------------------------------------
+    # Service container: PostgreSQL
+    # Runs as a sidecar container alongside the job.
+    # The health check ensures Postgres is fully ready before
+    # any steps execute — prevents race conditions on startup.
+    # ----------------------------------------------------------
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: tradetrack # dev DB; test DB created separately below
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # --------------------------------------------------------
+      # Check out the repository at the PR's HEAD commit
+      # --------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------
+      # Set up Node.js 20 with npm caching.
+      # cache-dependency-path scopes the cache to server/
+      # so a lockfile change busts it automatically.
+      # --------------------------------------------------------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      # --------------------------------------------------------
+      # Install dependencies using npm ci (not npm install).
+      # npm ci does a clean install strictly from package-lock.json
+      # — the correct tool for reproducible CI builds.
+      # --------------------------------------------------------
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      # --------------------------------------------------------
+      # Create the test database.
+      # The Postgres service container auto-creates 'tradetrack'
+      # but 'tradetrack_test' must be created explicitly.
+      # PGPASSWORD avoids an interactive password prompt.
+      # --------------------------------------------------------
+      - name: Create test database
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: psql -h localhost -U postgres -c "CREATE DATABASE tradetrack_test;"
+
+      # --------------------------------------------------------
+      # Run all versioned migrations against tradetrack_test.
+      # Add new migration files here as the schema evolves.
+      # --------------------------------------------------------
+      - name: Run migrations on test database
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/001_initial_schema.sql
+          psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/002_add_entry_exit_time_to_trades.sql
+
+      # --------------------------------------------------------
+      # Run the Jest test suite.
+      #
+      # Flags:
+      #   --runInBand   → serial execution (required for DB isolation)
+      #   --forceExit   → handles known supertest/Jest hanging issue
+      #
+      # Env vars mirror the local .env test configuration.
+      # SESSION_SECRET only needs to be a stable non-empty string
+      # in CI — no need to store it as a GitHub secret.
+      # --------------------------------------------------------
+      - name: Run tests
+        working-directory: server
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: tradetrack
+          DB_USER: postgres
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_POOL_MAX: 5
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        run: npm test -- --runInBand --forceExit
