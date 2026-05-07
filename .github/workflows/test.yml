@@ -40,7 +40,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: tradetrack # dev DB; test DB created separately below
         ports:
           - 5432:5432
@@ -86,7 +86,7 @@ jobs:
       # --------------------------------------------------------
       - name: Create test database
         env:
-          PGPASSWORD: postgres
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: psql -h localhost -U postgres -c "CREATE DATABASE tradetrack_test;"
 
       # --------------------------------------------------------
@@ -95,7 +95,7 @@ jobs:
       # --------------------------------------------------------
       - name: Run migrations on test database
         env:
-          PGPASSWORD: postgres
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/001_initial_schema.sql
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/002_add_entry_exit_time_to_trades.sql
@@ -119,7 +119,7 @@ jobs:
           DB_PORT: 5432
           DB_NAME: tradetrack
           DB_USER: postgres
-          DB_PASSWORD: postgres
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_POOL_MAX: 5
-          SESSION_SECRET: ci-test-secret
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
         run: npm test -- --runInBand --forceExit
