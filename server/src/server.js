@@ -65,7 +65,7 @@ const PORT = process.env.PORT || 5000;
  */
 const connectDB = async () => {
   try {
-    const client = await getPool.connect();
+    const client = await getPool().connect();
     client.release();
     logger.info("Database connection established", {
       host: process.env.DB_HOST,
