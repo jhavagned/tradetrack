@@ -6,11 +6,17 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --watch"
+    "test": "jest --runInBand --forceExit"
   },
   "jest": {
     "testEnvironment": "node",
-    "clearMocks": true
+    "clearMocks": true,
+    "setupFiles": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
+    "globalTeardown": "<rootDir>/tests/globalTeardown.js",
+    "testTimeout": 30000
   },
   "keywords": [],
   "author": "",

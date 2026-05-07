@@ -38,7 +38,7 @@ const { validateLogin } = require("../validation/auth.validation");
  *
  * LOGOUT:
  * 1. Extract sessionId
- * 2. Destroy session in store
+ * 2. Destroy session from database
  * 3. Clear cookie
  *
  * ME:
@@ -71,7 +71,7 @@ const register = async (req, res) => {
     return res.status(201).json({
       status: "success",
       data: {
-        userId: user.userId,
+        userId: user.user_id,
         email: user.email,
       },
     });
@@ -147,18 +147,18 @@ const login = async (req, res) => {
  *
  * Destroys session and clears cookie
  */
-const handleLogout = (req, res) => {
+const handleLogout = async (req, res) => {
   const sessionId = req.sessionId || req.cookies?.sessionId || req.headers["x-session-id"];
 
   if (sessionId) {
-    logout(sessionId);
+    await logout(sessionId);
   }
 
   // Clear cookie (match options used when setting it)
   res.clearCookie("sessionId", {
     httpOnly: true,
     sameSite: "lax",
-    secure: false, 
+    secure: false, // set to true in production (requires HTTPS)
   });
 
   logger.info("User logged out", {
