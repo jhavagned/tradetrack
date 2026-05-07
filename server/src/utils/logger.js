@@ -64,22 +64,6 @@ function getRequestContext() {
   };
 }
 
-/**
- * Pretty dev formatter 
- */
-// function formatPrettyLog({
-//   timestamp,
-//   level,
-//   source,
-//   requestId,
-//   message,
-//   meta,
-// }) {
-//   return `[${timestamp}] [${level.toUpperCase()}] [${source}] [${requestId}] : "${message}" ${
-//     Object.keys(meta).length ? JSON.stringify(meta) : ""
-//   }`;
-// }
-
 function formatPrettyLog(entry) {
   const { timestamp, level, source, requestId, message, meta } = entry;
 
@@ -95,7 +79,6 @@ function formatPrettyLog(entry) {
 function baseLog(level, message, meta = {}, source = "unknown") {
   if (!shouldLog(level)) return;
 
-  //const context = getContext();
   const context = getRequestContext();
 
   const logEntry = {

@@ -31,20 +31,20 @@ const TradesService = {
    * FLOW:
    * Controller -> Service -> Repository -> Controller
    */
-  getAllTrades: async () => {
-    logger.debug("Fetching all trades");
-
-    const trades = await TradesRepository.findAll();
-
-    // Ensure consistent return contract (always an array)
+  getAllTrades: async (userId) => {
+    logger.debug("Fetching all trades", { userId });
+  
+    const trades = await TradesRepository.findAll(userId);
+  
     const safeTrades = Array.isArray(trades) ? trades : [];
-
+  
     logger.debug("Trades retrieved from repository", {
       count: safeTrades.length,
     });
-
+  
     return safeTrades;
   },
+  
 
   /**
    * Create a new trade
@@ -54,58 +54,57 @@ const TradesService = {
    *
    * @param {Object} tradeInput - Raw trade payload from request
    */
-  createTrade: async (tradeInput) => {
+  createTrade: async (tradeInput, userId) => {
     logger.debug("Starting trade creation");
+  
     // =========================
     // Validation
     // =========================
     const validationError = validateTrade(tradeInput);
-
+  
     if (validationError) {
       logger.warn("Trade validation failed", {
         error: validationError.message,
         field: validationError.field,
       });
-
+  
       const err = new Error(validationError.message);
       err.code = "VALIDATION_ERROR";
       err.status = 400;
       err.field = validationError.field;
-
+  
       throw err;
     }
-
+  
     logger.debug("Trade validation passed");
-
+  
     // =========================
     // Data Normalization
     // =========================
     const newTrade = {
-      symbol: tradeInput.symbol,
-      type: tradeInput.type,
+      userId,
+      symbol:     tradeInput.symbol,
+      tradeType:  tradeInput.type,
       entryPrice: Number(tradeInput.entryPrice),
-      quantity: Number(tradeInput.quantity),
-      exitPrice: tradeInput.exitPrice ? Number(tradeInput.exitPrice) : null,
-      exitTime: tradeInput.exitTime || null,
-      notes: tradeInput.notes || "",
-      strategy: tradeInput.strategy || "",
-
-      // System fields
-      id: Date.now(),
-      createdAt: new Date().toISOString(),
+      exitPrice:  tradeInput.exitPrice  ? Number(tradeInput.exitPrice)  : null,
+      entryTime:  tradeInput.entryTime  || null,
+      exitTime:   tradeInput.exitTime   || null,
+      quantity:   Number(tradeInput.quantity),
+      notes:      tradeInput.notes      || null,
+      strategy:   tradeInput.strategy   || null,
     };
-
+  
     // =========================
     // Persist
     // =========================
-    logger.debug("Persisting trade", {
-      tradeId: newTrade.id,
-    });
-
+    logger.debug("Persisting trade", { userId });
+  
     const savedTrade = await TradesRepository.create(newTrade);
-
-    logger.info("Trade successfully created");
-
+  
+    logger.info("Trade successfully created", {
+      tradeId: savedTrade.trade_id,
+    });
+  
     return savedTrade;
   },
 };

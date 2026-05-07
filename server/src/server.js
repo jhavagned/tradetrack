@@ -4,8 +4,7 @@ require("dotenv").config();
 
 const app = require("./app");
 const createLogger = require("./utils/logger");
-const { startSessionCleanupJob } = require("./modules/auth/repositories/session.repository");
-const { pool } = require("./db/config/db");
+const { getPool } = require("./db/config/db");
 
 const logger = createLogger("server");
 
@@ -23,34 +22,28 @@ const PORT = process.env.PORT || 5000;
  * RESPONSIBILITIES:
  * - Load environment variables (dotenv)
  * - Initialize core application (Express app)
- * - Start background jobs (session cleanup)
  * - Start HTTP server on configured port
  * - Log server startup metadata
  *
  * =========================================================
  * STARTUP FLOW:
  * 1. Load environment variables
- * 2. Initialize Express app
- * 3. Start session cleanup job (TTL enforcement)
+ * 2. Validate database connection
+ * 3. Initialize Express app
  * 4. Start HTTP server
  * 5. Log startup success
  *
  * =========================================================
  * SESSION MANAGEMENT:
- * - Uses in-memory session store (temporary)
- * - TTL enforced via:
- *    a) Lazy expiration (on access)
- *    b) Background cleanup job (interval-based)
+ * - Sessions are persisted in PostgreSQL
+ * - Session expiry enforced at query level (expires_at > NOW())
+ * - No cleanup job needed
  *
- * NOTE:
- * - This MUST be called once at startup
- * - In production, replace with Redis TTL
  *
  * =========================================================
  * ENV VARIABLES:
  * - PORT: Server port (default: 5000)
  * - NODE_ENV: Environment (development | production)
- * - SESSION_TTL: Session lifetime in ms
  * - DB_HOST: Database host
  * - DB_PORT: Database port
  * - DB_NAME: Database name
@@ -59,7 +52,6 @@ const PORT = process.env.PORT || 5000;
  *
  * =========================================================
  * TODO:
- * - Replace in-memory session store with Redis
  * - Add graceful shutdown handling (SIGINT, SIGTERM)
  * - Add health check endpoints (/health)
  * - Add metrics/monitoring (Prometheus, OpenTelemetry)
@@ -73,7 +65,7 @@ const PORT = process.env.PORT || 5000;
  */
 const connectDB = async () => {
   try {
-    const client = await pool.connect();
+    const client = await getPool.connect();
     client.release();
     logger.info("Database connection established", {
       host: process.env.DB_HOST,
@@ -96,16 +88,6 @@ const connectDB = async () => {
 const start = async () => {
   await connectDB();
 
-  // Start background job for cleaning expired sessions
-  startSessionCleanupJob();
-
-  /**
- * Application entry point
- *
- * RESPONSIBILITIES:
- * - Load environment configuration
- * - Start HTTP server
- */
   app.listen(PORT, () => {
     logger.info("Server started successfully", {
       port: Number(PORT),

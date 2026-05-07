@@ -31,7 +31,7 @@ const logger = createLogger("auth.middleware");
  * =========================================================
  */
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const sessionId = req.cookies?.sessionId || req.headers["x-session-id"];
 
   /**
@@ -55,7 +55,7 @@ const authMiddleware = (req, res, next) => {
    * 2. SESSION VALIDATION
    * =========================================================
    */
-  const session = validateSession(sessionId);
+  const session = await validateSession(sessionId);
   const normalizedSessionId = sessionId || "missing";
 
   if (!session) {

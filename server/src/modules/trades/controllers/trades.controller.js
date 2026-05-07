@@ -40,7 +40,7 @@ const TradesController = {
     logger.info("GET /api/trades request received");
 
     try {
-      const trades = await TradesService.getAllTrades();
+      const trades = await TradesService.getAllTrades(req.userId);
 
       logger.info("Fetched all trades successfully", {
         count: trades.length,
@@ -73,7 +73,7 @@ const TradesController = {
     });
 
     try {
-      const trade = await TradesService.createTrade(req.body);
+      const trade = await TradesService.createTrade(req.body, req.userId);
 
       const response = sendSuccess(res, {
         statusCode: 201,
@@ -82,7 +82,7 @@ const TradesController = {
       });
 
       logger.info("Trade creation response sent", {
-        tradeId: trade.id,
+        tradeId: trade.trade_id,
       });
 
       return response;

@@ -132,16 +132,13 @@ export default function TradeEntry() {
    * Handles BUY/SELL logic explicitly
    */
   const calculatePnL = (t) => {
-    if (!t || t.exitPrice == null) return null;
-
+    if (!t || t.exit_price == null) return null;
     const multiplier = SYMBOL_MULTIPLIERS[t.symbol?.toUpperCase()] || 1;
 
-    const isBuy = t.type === "BUY";
-
+    const isBuy = t.trade_type === "BUY";
     const diff = isBuy
-      ? (t.exitPrice - t.entryPrice)
-      : (t.entryPrice - t.exitPrice);
-
+      ? (t.exit_price - t.entry_price)
+      : (t.entry_price - t.exit_price);
     return diff * t.quantity * multiplier;
   };
 
@@ -329,16 +326,13 @@ export default function TradeEntry() {
           const pnl = calculatePnL(t);
 
           return (
-            <div key={t.id || `${t.symbol}-${t.entryTime}`} style={styles.tradeRow}>
-
+            <div key={t.trade_id || `${t.symbol}-${t.entry_time}`} style={styles.tradeRow}>
               <div>
-                <strong>{t.symbol}</strong> — {t.type}
+                <strong>{t.symbol}</strong> — {t.trade_type}
               </div>
-
               <div>
-                {t.entryPrice} → {t.exitPrice ?? "Open"}
+                {t.entry_price} → {t.exit_price ?? "Open"}
               </div>
-
               <div>Qty: {t.quantity}</div>
 
               <div style={{ color: getPnlColor(pnl), fontWeight: "bold" }}>

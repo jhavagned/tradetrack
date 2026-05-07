@@ -1,15 +1,11 @@
 // /server/src/modules/trades/repositories/trades.repository.js
 
+const { query } = require("../../../db/config/db");
 const createLogger = require("../../../utils/logger");
+
 const logger = createLogger("trades.repository");
 
-/**
- * In-memory data store
- *
- * - This simulates a database
- * - Data resets when server restarts
- */
-const trades = [];
+
 
 /**
 
@@ -31,39 +27,50 @@ const trades = [];
  */
 const TradesRepository = {
   /**
-   * Retrieve all trades
+   * Retrieve all trades for a specific user
    *
+   * @param {string} userId - The user's UUID
    * @returns {Array} List of trades
    */
-  findAll: () => {
-    logger.debug("Retrieving all trades from store");
-
-    return trades;
+  findAll: async (userId) => {
+    logger.debug("Retrieving all trades from database", { userId });
+  
+    const { rows } = await query(
+      `SELECT * FROM trades 
+       WHERE user_id = $1 
+       ORDER BY created_at DESC`,
+      [userId]
+    );
+  
+    return rows;
   },
 
   /**
    * Persist a new trade
    *
-   * @param {Object} trade - Normalized trade object
-   * @returns {Object} Saved trade
+   * @param {Object} trade - { userId, symbol, tradeType, entryPrice, exitPrice, entryTime, exitTime, quantity, notes, strategy }
+   * @returns {Object} - The newly created trade row
    */
-  create: (trade) => {
-    trades.push(trade);
+  create: async ({ userId, symbol, tradeType, entryPrice, exitPrice, entryTime, exitTime, quantity, notes, strategy }) => {
+    logger.debug("Inserting new trade", { userId, symbol });
+
+    // Derive trade status and closed at from whether an exit price was provided
+    const tradeStatus = exitPrice ? 'closed' : 'open';
+    const closedAt = exitPrice ? new Date() : null;
+
+    const { rows } = await query(
+      `INSERT INTO trades (user_id, symbol, trade_type, entry_price, exit_price, entry_time, exit_time, quantity, trade_status, closed_at, notes, strategy)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING *`,
+      [userId, symbol, tradeType, entryPrice, exitPrice || null, entryTime || null, exitTime || null, quantity, tradeStatus, closedAt, notes || null, strategy || null]
+    );
 
     logger.debug("Trade persisted", {
-      tradeId: trade.id,
+      tradeId: rows[0].trade_id,
+      tradeStatus,
     });
 
-    return trade;
-  },
-
-  /**
-   * Clear all trades
-   */
-  clear: () => {
-    trades.length = 0;
-
-    logger.warn("All trades cleared from store");
+    return rows[0];
   },
 };
 

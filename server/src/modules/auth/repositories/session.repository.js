@@ -1,159 +1,120 @@
 // /server/src/modules/auth/repositories/session.repository.js
 
-const sessions = new Map();
+const { query } = require("../../../db/config/db");
 const createLogger = require("../../../utils/logger");
 
 const logger = createLogger("session.repository");
 
 /**
  * =========================================================
- * SESSION STORE (IN-MEMORY)
+ * SESSION REPOSITORY
  * =========================================================
  *
  * PURPOSE:
- * Temporary session persistence layer used for authentication.
+ * Handles all database operations for session management.
  *
  * =========================================================
  * RESPONSIBILITIES:
  * - Create sessions on login
  * - Retrieve and validate sessions
  * - Delete sessions on logout
- * - Auto-expire sessions (TTL enforcement)
  *
  * =========================================================
- * IMPORTANT:
- * This is an in-memory store:
- * - NOT production-safe across multiple servers
- * - WILL reset on server restart
- *
- * TODO:
- * Replace with Redis for:
- * - distributed scaling
- * - persistent TTL management
- * - centralized session control
- *
+ * NOTE:
+ * Session expiry is enforced at the query level using
+ * expires_at > NOW(). No cleanup job is needed.
  * =========================================================
  */
-
-/**
- * Session Time-To-Live (TTL)
- * -----------------------------------------
- * Default: 30 minutes
- * Can be overridden via environment variable.
- * Fallback ensures system still works if env is missing
- */
-const SESSION_TTL = parseInt(process.env.SESSION_TTL, 10) || 1000 * 60 * 30;
 
 /**
  * =========================================================
  * CREATE SESSION
  * =========================================================
+ * Inserts a new session record into the database.
+ * expiresAt is calculated in the service layer and passed in.
  *
- * Called on successful login.
- * Stores session metadata in memory.
+ * @param {string} userId
+ * @param {Date}   expiresAt
+ * @returns {Object} - The newly created session row
  */
-const createSession = (sessionId, userId) => {
-  const now = Date.now();
+const createSession = async (userId, expiresAt) => {
+  logger.debug("Creating session", { userId });
 
-  const session = {
-    sessionId,
-    userId,
-    createdAt: now,
-    expiresAt: now + SESSION_TTL,
-  };
+  const { rows } = await query(
+    `INSERT INTO sessions (user_id, expires_at)
+     VALUES ($1, $2)
+     RETURNING *`,
+    [userId, expiresAt]
+  );
 
   logger.info("Session created", {
-    sessionId,
+    sessionId: rows[0].session_id,
     userId,
-    expiresAt: session.expiresAt,
+    expiresAt,
   });
 
-  sessions.set(sessionId, session);
-
-  return session;
+  return rows[0];
 };
 
 /**
  * =========================================================
  * GET SESSION
  * =========================================================
+ * Retrieves a session by session_id.
+ * Only returns the session if it has not expired.
+ * Expiry is enforced at the query level.
  *
- * Used by auth middleware to validate requests.
- *
- * FLOW:
- * - Check existence
- * - Check expiration
- * - Return session or null
+ * @param {string} sessionId
+ * @returns {Object|null} - Session row or null if not found/expired
  */
-const getSession = (sessionId) => {
-  const session = sessions.get(sessionId);
+const getSession = async (sessionId) => {
+  logger.debug("Looking up session", { sessionId });
 
-  if (!session) {
-    logger.debug("Session not found", { sessionId });
+  // Postgres will throw if sessionId is not a valid UUID
+  // Return null early for obviously invalid formats
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(sessionId)) {
+    logger.debug("Session not found or expired", { sessionId });
     return null;
-  } 
+  }
+  
+  const { rows } = await query(
+    `SELECT * FROM sessions 
+     WHERE session_id = $1 
+     AND expires_at > NOW()`,
+    [sessionId]
+  );
 
-  // expired session cleanup
-  if (Date.now() > session.expiresAt) {
-    console.log("Session expired", { sessionId });
-    sessions.delete(sessionId);
+  if (!rows[0]) {
+    logger.debug("Session not found or expired", { sessionId });
     return null;
   }
 
-  return session;
+  return rows[0];
 };
 
 /**
  * =========================================================
  * DELETE SESSION
  * =========================================================
+ * Removes a session from the database on logout.
  *
- * Used during logout.
+ * @param {string} sessionId
+ * @returns {void}
  */
-const deleteSession = (sessionId) => {
-  sessions.delete(sessionId);
-};
+const deleteSession = async (sessionId) => {
+  logger.debug("Deleting session", { sessionId });
 
-/**
- * =========================================================
- * CLEAR ALL SESSIONS (TESTING ONLY)
- * =========================================================
- */
-const clearSessions = () => { 
-  sessions.clear();
-};
-
-/**
- * =========================================================
- * SESSION CLEANUP JOB
- * =========================================================
- *
- * Runs periodically to remove expired sessions
- * even if they are never accessed again.
- *
- * Prevents memory growth in long-running processes.
- */
-const startSessionCleanupJob = () => {
-  setInterval(
-    () => {
-      const now = Date.now();
-
-      for (const [sessionId, session] of sessions.entries()) {
-        if (now > session.expiresAt) {
-          logger.debug("Cleaning expired session", { sessionId });
-
-          sessions.delete(sessionId);
-        }
-      }
-    },
-    1 * 60 * 1000,
+  await query(
+    `DELETE FROM sessions WHERE session_id = $1`,
+    [sessionId]
   );
+
+  logger.info("Session deleted", { sessionId });
 };
 
 module.exports = {
   createSession,
   getSession,
   deleteSession,
-  clearSessions,
-  startSessionCleanupJob,
 };
