@@ -31,7 +31,6 @@ import { useAuth } from "../context/AuthContext";
 export default function Login() {
     const navigate = useNavigate();
     const { login } = useAuth();
-    //const { checkAuth } = useAuth();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -62,7 +61,6 @@ export default function Login() {
             }
 
             await login();
-            //await checkAuth();
 
             setMessage("Login successful");
 
@@ -76,35 +74,86 @@ export default function Login() {
     };
 
     return (
-        <div>
-            <h2>Login</h2>
+        <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+            <div className="w-full max-w-md">
 
-            <form onSubmit={handleLogin}>
-                <input
-                    type="email"
-                    placeholder="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
+                {/* LOGO */}
+                <div className="mb-8 text-center">
+                    <h1 className="text-3xl font-bold tracking-tight text-white">
+                        Trade<span className="text-emerald-400">Track</span>
+                    </h1>
+                    <p className="mt-2 text-sm text-zinc-500">Sign in to your account</p>
+                </div>
 
-                <input
-                    type="password"
-                    placeholder="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+                {/* CARD */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl">
 
-                <button type="submit">Login</button>
-            </form>
+                    <form onSubmit={handleLogin} className="space-y-5">
 
-            <p>{message}</p>
+                        {/* EMAIL */}
+                        <div>
+                            <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="you@example.com"
+                                required
+                                className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                            />
+                        </div>
 
-            <p>
-                Don't have an account?{" "}
-                <button onClick={() => navigate("/register")}>
-                    Register
-                </button>
-            </p>
+                        {/* PASSWORD */}
+                        <div>
+                            <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                                Password
+                            </label>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                required
+                                className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+                            />
+                        </div>
+
+                        {/* ERROR MESSAGE */}
+                        {message && (
+                            <p className={`text-sm rounded-lg px-4 py-2.5 border ${message === "Login successful"
+                                    ? "text-emerald-400 bg-emerald-950 border-emerald-800"
+                                    : "text-red-400 bg-red-950 border-red-800"
+                                }`}>
+                                {message}
+                            </p>
+                        )}
+
+                        {/* SUBMIT */}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-zinc-950 font-semibold rounded-lg px-4 py-2.5 text-sm transition"
+                        >
+                            {loading ? "Signing in..." : "Sign In"}
+                        </button>
+
+                    </form>
+
+                    {/* REGISTER LINK */}
+                    <p className="mt-6 text-center text-sm text-zinc-500">
+                        Don't have an account?{" "}
+                        <button
+                            onClick={() => navigate("/register")}
+                            className="text-emerald-400 hover:text-emerald-300 font-medium transition"
+                        >
+                            Register
+                        </button>
+                    </p>
+
+                </div>
+            </div>
         </div>
     );
 }
