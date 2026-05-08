@@ -79,6 +79,36 @@ jobs:
         run: npm ci
 
       # --------------------------------------------------------
+      # Validate required environment variables before proceeding.
+      # Fails the workflow immediately with a descriptive error
+      # if any variable is missing — prevents misleading failures
+      # in later steps.
+      # --------------------------------------------------------
+      - name: Validate environment variables
+        run: |
+          MISSING=()
+          [ -z "$DB_HOST" ]        && MISSING+=("DB_HOST")
+          [ -z "$DB_PORT" ]        && MISSING+=("DB_PORT")
+          [ -z "$DB_NAME" ]        && MISSING+=("DB_NAME")
+          [ -z "$DB_USER" ]        && MISSING+=("DB_USER")
+          [ -z "$DB_PASSWORD" ]    && MISSING+=("DB_PASSWORD")
+          [ -z "$SESSION_SECRET" ] && MISSING+=("SESSION_SECRET")
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "Missing required environment variables: ${MISSING[*]}"
+            exit 1
+          fi
+
+          echo "All required environment variables are present"
+        env:
+          DB_HOST:        localhost
+          DB_PORT:        "5432"
+          DB_NAME:        tradetrack
+          DB_USER:        postgres
+          DB_PASSWORD:    ${{ secrets.DB_PASSWORD }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+
+      # --------------------------------------------------------
       # Create the test database.
       # The Postgres service container auto-creates 'tradetrack'
       # but 'tradetrack_test' must be created explicitly.
