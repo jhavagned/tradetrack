@@ -7,6 +7,12 @@ import { useEffect, useState, useMemo } from "react";
 import { API_URL } from "../config/api.js";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import {
+  validatePositiveNumber,
+  validatePositiveInteger,
+  validateExitAfterEntry,
+  validateExitFields
+} from "../utils/validation";
 
 /**
  * =========================================================
@@ -72,6 +78,7 @@ export default function TradeEntry() {
     strategy: ""
   });
 
+  const [formError, setFormError] = useState("");
   /**
    * Stores all trades fetched from backend
    */
@@ -211,6 +218,24 @@ export default function TradeEntry() {
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+    
+    
+    // =========================
+    // Frontend Validation
+    // =========================
+    const entryPriceError    = validatePositiveNumber(trade.entryPrice, "Entry price");
+    const quantityError      = validatePositiveInteger(trade.quantity, "Quantity");
+    const exitPriceError     = trade.exitPrice ? validatePositiveNumber(trade.exitPrice, "Exit price") : null;
+    const exitFieldsError    = validateExitFields(trade.exitPrice, trade.exitTime);
+    const exitAfterEntryError = validateExitAfterEntry(trade.entryTime, trade.exitTime);
+
+    const validationError = entryPriceError || quantityError || exitPriceError || exitFieldsError || exitAfterEntryError;
+
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
 
     const formattedTrade = {
       ...trade,
@@ -428,6 +453,7 @@ export default function TradeEntry() {
                     name="entryTime"
                     value={trade.entryTime}
                     onChange={handleChange}
+                    required
                     className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
                   />
                 </div>
@@ -475,6 +501,13 @@ export default function TradeEntry() {
                   />
                 </div>
               </div>
+
+              {/* VALIDATION ERROR */}
+              {formError && (
+                <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-4 py-2.5">
+                  {formError}
+                </p>
+              )}
 
               {/* SUBMIT */}
               <div className="flex justify-end">

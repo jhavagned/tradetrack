@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { API_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
+import { validatePassword } from "../utils/validation";
 
 /**
  * =========================================================
@@ -32,11 +33,27 @@ export default function Register() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    const passwordError = validatePassword(password);   // ← add here
+    if (passwordError) {
+      setIsSuccess(false);
+      setMessage(passwordError);
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setIsSuccess(false);
+      setMessage("Passwords do not match");
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch(`${API_URL}/api/auth/register`, {
@@ -44,7 +61,7 @@ export default function Register() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.toLowerCase(), password }),
       });
 
       const data = await res.json();
@@ -112,6 +129,21 @@ export default function Register() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"
+              />
+            </div>
+
+            {/* CONFIRM PASSWORD */}
+            <div>
+              <label className="block text-xs font-medium text-zinc-400 mb-1.5 uppercase tracking-wider">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
                 className="w-full bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition"

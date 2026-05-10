@@ -4,6 +4,7 @@ import { useState } from "react";
 import { API_URL } from "../config/api.js";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { validatePassword } from "../utils/validation";
 
 /**
  * =========================================================
@@ -42,6 +43,13 @@ export default function Login() {
         setLoading(true);
         setMessage("");
 
+        const passwordError = validatePassword(password);   // ← add here
+        if (passwordError) {
+            setMessage(passwordError);
+            setLoading(false);
+            return;
+        }
+
         try {
             const res = await fetch(`${API_URL}/api/auth/login`, {
                 method: "POST",
@@ -49,7 +57,7 @@ export default function Login() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email: email.toLowerCase(), password }),
             });
 
             const data = await res.json();
