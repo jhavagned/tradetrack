@@ -78,9 +78,11 @@ const register = async (req, res) => {
   } catch (err) {
     logger.error("Registration failed", { error: err.message });
 
-    return res.status(400).json({
+    const statusCode = err.status || 500;
+
+    return res.status(statusCode).json({
       status: "error",
-      message: err.message,
+      message: statusCode === 500 ? "Internal server error" : err.message,
     });
   }
 };
@@ -104,7 +106,7 @@ const login = async (req, res) => {
     });
   }
 
-  try { 
+  try {
     // 1. Authenticate user
     const user = await loginWithPassword({ email, password });
 
@@ -148,7 +150,8 @@ const login = async (req, res) => {
  * Destroys session and clears cookie
  */
 const handleLogout = async (req, res) => {
-  const sessionId = req.sessionId || req.cookies?.sessionId || req.headers["x-session-id"];
+  const sessionId =
+    req.sessionId || req.cookies?.sessionId || req.headers["x-session-id"];
 
   if (sessionId) {
     await logout(sessionId);
@@ -187,7 +190,7 @@ const getMe = (req, res) => {
   }
 
   logger.info("Fetched current user", { userId: req.userId });
-  
+
   res.status(200).json({
     status: "success",
     data: {

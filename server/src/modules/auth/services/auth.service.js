@@ -56,8 +56,13 @@ const SALT_ROUNDS = 10;
 const registerUser = async ({ email, password }) => {
   const existing = await findByEmail(email);
 
+  // TODO: Implement email verification to enable silent login on duplicate registration.
+  // See Story: Implement Email Verification on Register
   if (existing) {
-    throw new Error("User already exists");
+    const err = new Error("An account with that email already exists");
+    err.status = 409;
+    err.code = "DUPLICATE_ERROR";
+    throw err;
   }
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
