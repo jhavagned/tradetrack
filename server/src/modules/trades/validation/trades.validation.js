@@ -121,7 +121,49 @@ function validateTrade(trade) {
   return null;
 }
 
+/**
+ * Validates the payload for closing a trade
+ *
+ * @param {Object} payload - { exitPrice, exitTime }
+ * @returns {null | { message: string, field?: string }}
+ */
+function validateCloseTrade(payload) {
+  if (!payload || typeof payload !== "object") {
+    return createValidationError("Invalid payload");
+  }
+
+  const { exitPrice, exitTime } = payload;
+
+  // =========================
+  // Required fields
+  // =========================
+  if (exitPrice == null) {
+    return createValidationError("Exit price is required", "exitPrice");
+  }
+
+  if (!exitTime) {
+    return createValidationError("Exit time is required", "exitTime");
+  }
+
+  // =========================
+  // Numeric validation
+  // =========================
+  if (isNaN(Number(exitPrice))) {
+    return createValidationError("Exit price must be a number", "exitPrice");
+  }
+
+  if (Number(exitPrice) <= 0) {
+    return createValidationError(
+      "Exit price must be greater than 0",
+      "exitPrice",
+    );
+  }
+
+  return null;
+}
+
 module.exports = {
   validateTrade,
+  validateCloseTrade,
   TRADE_TYPES,
 };

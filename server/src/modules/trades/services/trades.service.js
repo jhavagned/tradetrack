@@ -1,6 +1,9 @@
 // /server/src/modules/trades/services/trades.service.js
 
-const { validateTrade } = require("../validation/trades.validation");
+const {
+  validateTrade,
+  validateCloseTrade,
+} = require("../validation/trades.validation");
 const TradesRepository = require("../repositories/trades.repository");
 const createLogger = require("../../../utils/logger");
 
@@ -33,18 +36,17 @@ const TradesService = {
    */
   getAllTrades: async (userId) => {
     logger.debug("Fetching all trades", { userId });
-  
+
     const trades = await TradesRepository.findAll(userId);
-  
+
     const safeTrades = Array.isArray(trades) ? trades : [];
-  
+
     logger.debug("Trades retrieved from repository", {
       count: safeTrades.length,
     });
-  
+
     return safeTrades;
   },
-  
 
   /**
    * Create a new trade
@@ -56,56 +58,149 @@ const TradesService = {
    */
   createTrade: async (tradeInput, userId) => {
     logger.debug("Starting trade creation");
-  
+
     // =========================
     // Validation
     // =========================
     const validationError = validateTrade(tradeInput);
-  
+
     if (validationError) {
       logger.warn("Trade validation failed", {
         error: validationError.message,
         field: validationError.field,
       });
-  
+
       const err = new Error(validationError.message);
       err.code = "VALIDATION_ERROR";
       err.status = 400;
       err.field = validationError.field;
-  
+
       throw err;
     }
-  
+
     logger.debug("Trade validation passed");
-  
+
     // =========================
     // Data Normalization
     // =========================
     const newTrade = {
       userId,
-      symbol:     tradeInput.symbol,
-      tradeType:  tradeInput.type,
+      symbol: tradeInput.symbol,
+      tradeType: tradeInput.type,
       entryPrice: Number(tradeInput.entryPrice),
-      exitPrice:  tradeInput.exitPrice  ? Number(tradeInput.exitPrice)  : null,
-      entryTime:  tradeInput.entryTime  || null,
-      exitTime:   tradeInput.exitTime   || null,
-      quantity:   Number(tradeInput.quantity),
-      notes:      tradeInput.notes      || null,
-      strategy:   tradeInput.strategy   || null,
+      exitPrice: tradeInput.exitPrice ? Number(tradeInput.exitPrice) : null,
+      entryTime: tradeInput.entryTime || null,
+      exitTime: tradeInput.exitTime || null,
+      quantity: Number(tradeInput.quantity),
+      notes: tradeInput.notes || null,
+      strategy: tradeInput.strategy || null,
     };
-  
+
     // =========================
     // Persist
     // =========================
     logger.debug("Persisting trade", { userId });
-  
+
     const savedTrade = await TradesRepository.create(newTrade);
-  
+
     logger.info("Trade successfully created", {
       tradeId: savedTrade.trade_id,
     });
-  
+
     return savedTrade;
+  },
+
+  /**
+   * Close an open trade
+   *
+   * FLOW:
+   * Controller → Service → Validation → Ownership Check → Status Check → Repository
+   *
+   * BUSINESS RULES:
+   * - Trade must exist (404)
+   * - Trade must belong to the requesting user (403)
+   * - Trade must be open (400)
+   * - exitPrice and exitTime are required and valid
+   *
+   * @param {string} tradeId   - UUID of the trade to close
+   * @param {string} userId    - UUID of the authenticated user
+   * @param {Object} payload   - { exitPrice, exitTime }
+   * @returns {Object} The updated trade
+   */
+  closeTrade: async (tradeId, userId, payload) => {
+    logger.debug("Starting close trade", { tradeId, userId });
+
+    // =========================
+    // Validation
+    // =========================
+    const validationError = validateCloseTrade(payload);
+
+    if (validationError) {
+      logger.warn("Close trade validation failed", {
+        error: validationError.message,
+        field: validationError.field,
+      });
+
+      const err = new Error(validationError.message);
+      err.code = "VALIDATION_ERROR";
+      err.status = 400;
+      err.field = validationError.field;
+      throw err;
+    }
+
+    // =========================
+    // Existence check
+    // =========================
+    const trade = await TradesRepository.findById(tradeId);
+
+    if (!trade) {
+      logger.warn("Close trade failed — trade not found", { tradeId });
+
+      const err = new Error("Trade not found");
+      err.code = "NOT_FOUND";
+      err.status = 404;
+      throw err;
+    }
+
+    // =========================
+    // Ownership check
+    // =========================
+    if (trade.user_id !== userId) {
+      logger.warn("Close trade failed — forbidden", { tradeId, userId });
+
+      const err = new Error("You do not have permission to close this trade");
+      err.code = "FORBIDDEN";
+      err.status = 403;
+      throw err;
+    }
+
+    // =========================
+    // Status check
+    // =========================
+    if (trade.trade_status === "closed") {
+      logger.warn("Close trade failed — trade already closed", { tradeId });
+
+      const err = new Error("Trade is already closed");
+      err.code = "TRADE_ALREADY_CLOSED";
+      err.status = 400;
+      throw err;
+    }
+
+    // =========================
+    // Persist
+    // =========================
+    const closedAt = new Date();
+
+    const updatedTrade = await TradesRepository.closeTrade(
+      tradeId,
+      Number(payload.exitPrice),
+      payload.exitTime,
+      closedAt,
+    );
+
+    logger.info("Trade closed successfully", { tradeId });
+
+    return updatedTrade;
   },
 };
 

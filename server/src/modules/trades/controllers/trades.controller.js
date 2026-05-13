@@ -99,6 +99,36 @@ const TradesController = {
       return sendError(res, err);
     }
   },
+
+  /**
+   * PATCH /api/trades/:id/close
+   * Close an open trade
+   */
+  closeTrade: async (req, res) => {
+    const { id } = req.params;
+
+    logger.info("Close trade request received", { tradeId: id });
+
+    try {
+      const trade = await TradesService.closeTrade(id, req.userId, req.body);
+
+      const response = sendSuccess(res, {
+        message: "Trade closed",
+        data: trade,
+      });
+
+      logger.info("Close trade response sent", { tradeId: id });
+
+      return response;
+    } catch (err) {
+      logger.error("Close trade failed in controller", {
+        tradeId: id,
+        error: err.message,
+      });
+
+      return sendError(res, err);
+    }
+  },
 };
 
 module.exports = TradesController;
