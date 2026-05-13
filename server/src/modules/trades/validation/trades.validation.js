@@ -31,7 +31,8 @@ function validateTrade(trade) {
     return createValidationError("Invalid payload");
   }
 
-  const { symbol, type, entryPrice, quantity, exitPrice, exitTime } = trade;
+  const { symbol, type, entryPrice, quantity, exitPrice, exitTime, entryTime } =
+    trade;
 
   // =========================
   // Required fields
@@ -104,6 +105,16 @@ function validateTrade(trade) {
     return createValidationError(
       "Exit price and exit time must both be provided",
       "exit",
+    );
+  }
+
+  // =========================
+  // Temporal validation
+  // =========================
+  if (entryTime && exitTime && new Date(exitTime) <= new Date(entryTime)) {
+    return createValidationError(
+      "Exit time must be after entry time",
+      "exitTime",
     );
   }
 

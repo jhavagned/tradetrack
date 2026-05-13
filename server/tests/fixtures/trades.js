@@ -6,6 +6,7 @@ function validTrade(overrides = {}) {
     type: "BUY",
     entryPrice: 100,
     quantity: 1,
+    entryTime: "2026-04-21T09:00:00Z",
     exitPrice: 150,
     exitTime: "2026-04-21T10:00:00Z",
     ...overrides,
