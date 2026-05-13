@@ -61,8 +61,7 @@ const register = async (req, res) => {
     const error = validateLogin({ email, password });
     if (error) {
       return res.status(400).json({
-        status: "error",
-        message: error,
+        error: { message: error, code: "VALIDATION_ERROR" },
       });
     }
 
@@ -79,10 +78,11 @@ const register = async (req, res) => {
     logger.error("Registration failed", { error: err.message });
 
     const statusCode = err.status || 500;
+    const message = statusCode === 500 ? "Internal server error" : err.message;
+    const code = err.code || (statusCode === 500 ? "INTERNAL_ERROR" : "ERROR");
 
     return res.status(statusCode).json({
-      status: "error",
-      message: statusCode === 500 ? "Internal server error" : err.message,
+      error: { message, code },
     });
   }
 };
@@ -101,8 +101,7 @@ const login = async (req, res) => {
   const error = validateLogin({ email, password });
   if (error) {
     return res.status(400).json({
-      status: "error",
-      message: error,
+      error: { message: error, code: "VALIDATION_ERROR" },
     });
   }
 
@@ -112,8 +111,7 @@ const login = async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        status: "error",
-        message: "Invalid credentials",
+        error: { message: "Invalid credentials", code: "INVALID_CREDENTIALS" },
       });
     }
 
@@ -135,8 +133,7 @@ const login = async (req, res) => {
     logger.error("Login failed", { error: err.message });
 
     return res.status(500).json({
-      status: "error",
-      message: "Internal server error",
+      error: { message: "Internal server error", code: "INTERNAL_ERROR" },
     });
   }
 };
@@ -184,8 +181,7 @@ const handleLogout = async (req, res) => {
 const getMe = (req, res) => {
   if (!req.userId) {
     return res.status(401).json({
-      status: "error",
-      message: "Unauthorized",
+      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
     });
   }
 

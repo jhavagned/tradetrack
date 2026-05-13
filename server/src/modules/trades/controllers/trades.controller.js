@@ -21,13 +21,17 @@ const sendSuccess = (res, { statusCode = 200, message, data }) => {
  */
 const sendError = (res, err) => {
   const statusCode = err.status || 500;
+  const message =
+    statusCode === 500
+      ? "Internal server error"
+      : err.message || "Something went wrong";
+  const code = err.code || (statusCode === 500 ? "INTERNAL_ERROR" : "ERROR");
 
   return res.status(statusCode).json({
-    status: "error",
-    message:
-      statusCode === 500
-        ? "Internal server error"
-        : err.message || "Something went wrong",
+    error: {
+      message,
+      code,
+    },
   });
 };
 

@@ -68,7 +68,7 @@ export default function Register() {
 
       if (!res.ok) {
         setIsSuccess(false);
-        setMessage(data.message || "Registration failed");
+        setMessage(data.error?.message || "Registration failed");
         setLoading(false);
         return;
       }

@@ -104,8 +104,8 @@ describe("Trade API", () => {
       .send(invalidTrade());
 
     expect(res.status).toBe(400);
-    expect(res.body.status).toBe("error");
-    expect(res.body.message).toMatch(/required/i);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/required/i);
   });
 
   // =========================
@@ -139,7 +139,7 @@ describe("Trade API", () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/greater than 0|invalid numeric/i);
+    expect(res.body.error.message).toMatch(/greater than 0|invalid numeric/i);
   });
 
   // =========================
@@ -174,7 +174,7 @@ describe("Trade API", () => {
       });
 
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/exit.*both|incomplete/i);
+    expect(res.body.error.message).toMatch(/exit.*both|incomplete/i);
   });
 
   // =========================
@@ -245,7 +245,7 @@ describe("Trade API", () => {
         });
 
       expect(res.status).toBe(400);
-      expect(res.body.message).toMatch(/invalid trade type/i);
+      expect(res.body.error.message).toMatch(/invalid trade type/i);
     }
   });
 });

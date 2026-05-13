@@ -63,7 +63,7 @@ export default function Login() {
             const data = await res.json();
 
             if (!res.ok) {
-                setMessage(data.message || "Login failed");
+                setMessage(data.error?.message || "Login failed");
                 setLoading(false);
                 return;
             }
