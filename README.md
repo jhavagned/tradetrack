@@ -25,7 +25,7 @@ TradeTrack is built with a focus on clean architecture, observability, and produ
 |---|---|
 | Backend | Node.js, Express |
 | Database | PostgreSQL (Docker) |
-| Frontend | React (Vite) |
+| Frontend | React (Vite), Tailwind CSS |
 | Testing | Jest, Supertest |
 | CI | GitHub Actions |
 

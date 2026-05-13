@@ -260,7 +260,7 @@ export default function TradeEntry() {
       // API Guard
       // =========================
       if (!res.ok || data.status !== "success") {
-        console.error("API Error:", data.message);
+        setFormError(data.error?.message || "Failed to create trade");
         return;
       }
 
