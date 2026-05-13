@@ -122,13 +122,11 @@ describe("App Infrastructure", () => {
       .post("/api/trades")
       .set("Cookie", cookie)
       .send(validTrade());
-  
+
     // Use the same cookie for the GET — the session must remain
     // valid between the POST and GET within the same test.
-    const res = await request(app)
-      .get("/api/trades")
-      .set("Cookie", cookie);
-  
+    const res = await request(app).get("/api/trades").set("Cookie", cookie);
+
     expect(res.status).toBe(200);
     expect(res.body.data.length).toBe(1);
   });
@@ -142,8 +140,10 @@ describe("App Infrastructure", () => {
    *
    * EXPECTED FORMAT:
    * {
-   *   status: "error",
-   *   message: string
+   *   error: {
+   *     message: string,
+   *     code: string
+   *   }
    * }
    *
    * WHY:
@@ -157,8 +157,9 @@ describe("App Infrastructure", () => {
       .send({});
 
     expect(res.status).toBe(400);
-    expect(res.body).toHaveProperty("status", "error");
-    expect(res.body).toHaveProperty("message");
+    expect(res.body).toHaveProperty("error");
+    expect(res.body.error).toHaveProperty("message");
+    expect(res.body.error).toHaveProperty("code");
   });
 
   // =========================
