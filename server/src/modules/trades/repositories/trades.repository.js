@@ -99,6 +99,54 @@ const TradesRepository = {
       handleDbError(error);
     }
   },
+
+  /**
+   * Find a single trade by tradeId
+   *
+   * @param {string} tradeId - The trade's UUID
+   * @returns {Object|null} The trade row or null if not found
+   */
+  findById: async (tradeId) => {
+    logger.debug("Finding trade by ID", { tradeId });
+
+    const { rows } = await query(`SELECT * FROM trades WHERE trade_id = $1`, [
+      tradeId,
+    ]);
+
+    return rows[0] || null;
+  },
+
+  /**
+   * Close an open trade
+   *
+   * @param {string} tradeId - The trade's UUID
+   * @param {number} exitPrice - The exit price
+   * @param {string} exitTime - The exit timestamp
+   * @param {Date} closedAt - Server-derived close timestamp
+   * @returns {Object} The updated trade row
+   */
+  closeTrade: async (tradeId, exitPrice, exitTime, closedAt) => {
+    logger.debug("Closing trade in database", { tradeId });
+
+    try {
+      const { rows } = await query(
+        `UPDATE trades
+        SET exit_price   = $1,
+            exit_time    = $2,
+            trade_status = 'closed',
+            closed_at    = $3
+        WHERE trade_id = $4
+        RETURNING *`,
+        [exitPrice, exitTime, closedAt, tradeId],
+      );
+
+      logger.debug("Trade closed in database", { tradeId });
+
+      return rows[0];
+    } catch (error) {
+      handleDbError(error);
+    }
+  },
 };
 
 module.exports = TradesRepository;

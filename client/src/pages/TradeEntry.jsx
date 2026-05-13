@@ -13,6 +13,8 @@ import {
   validateExitAfterEntry,
   validateExitFields
 } from "../utils/validation";
+import { formatCurrency, formatPrice, formatQuantity, formatDateTime } from "../utils/formatters";
+import CloseTradeModal from "../components/CloseTradeModal";
 
 /**
  * =========================================================
@@ -84,6 +86,10 @@ export default function TradeEntry() {
    */
   const [trades, setTrades] = useState([]);
 
+  const [closingTrade, setClosingTrade]       = useState(null);  // trade being closed
+  const [closeError, setCloseError]           = useState("");
+  const [closeSubmitting, setCloseSubmitting] = useState(false);
+
   // =========================================================
   // LOGOUT
   // =========================================================
@@ -99,25 +105,6 @@ export default function TradeEntry() {
   // =========================
   // Helpers
   // =========================
-
-  /**
-   * Formats a number into USD currency string
-   * Adds "+" sign for positive values
-   */
-  const formatCurrency = (value) => {
-    if (value == null) return "Open";
-
-    const sign = value > 0 ? "+" : "";
-
-    return (
-      sign +
-      value.toLocaleString("en-US", {
-        style: "currency",
-        currency: "USD",
-        minimumFractionDigits: 2
-      })
-    );
-  };
 
   /**
    * UI color based on P&L
@@ -141,41 +128,6 @@ export default function TradeEntry() {
       ? (t.exit_price - t.entry_price)
       : (t.entry_price - t.exit_price);
     return diff * t.quantity * multiplier;
-  };
-
-  /**
-   * Formats an ISO datetime string into a readable short format
-   * e.g. "Jan 5, 02:30 PM"
-   */
-  const formatDateTime = (iso) => {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
-
-  /**
-   * Formats a numeric price to 2 decimal places
-   * e.g. 19500.2500 → "19,500.25"
-   */
-  const formatPrice = (value) => {
-    if (value == null) return "—";
-    return Number(value).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  };
-
-  /**
-   * Formats quantity as a whole number integer
-   * e.g. 1.0000 → "1"
-   */
-  const formatQuantity = (value) => {
-    if (value == null) return "—";
-    return parseInt(value, 10).toString();
   };
 
   // =========================
@@ -290,6 +242,42 @@ export default function TradeEntry() {
     }
   };
 
+  /**
+   * Submit close trade request to backend
+   * Updates trade row in place on success
+   */
+  const handleCloseTrade = async (tradeId, exitPrice, exitTime) => {
+    setCloseError("");
+    setCloseSubmitting(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/trades/${tradeId}/close`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exitPrice: Number(exitPrice), exitTime }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.status !== "success") {
+        setCloseError(data.error?.message || "Failed to close trade");
+        return;
+      }
+
+      // Update the row in place — no re-fetch needed
+      setTrades((prev) =>
+        prev.map((t) => (t.trade_id === tradeId ? data.data : t))
+      );
+
+      setClosingTrade(null);
+    } catch (err) {
+      console.error("Close trade error:", err);
+      setCloseError("Network error. Please try again.");
+    } finally {
+      setCloseSubmitting(false);
+    }
+  };
 
   // =========================
   // Effects
@@ -532,14 +520,16 @@ export default function TradeEntry() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
 
             {/* TABLE HEADER */}
-            <div className="grid grid-cols-7 gap-4 px-6 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
+            <div className="grid grid-cols-9 gap-4 px-6 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
               <span>Symbol</span>
               <span>Type</span>
               <span>Entry Time</span>
               <span>Entry Price</span>
+              <span>Exit Time</span>
               <span>Exit Price</span>
               <span>Qty</span>
               <span className="text-right">P&L</span>
+              <span></span>
             </div>
 
             {/* TRADE ROWS */}
@@ -555,7 +545,7 @@ export default function TradeEntry() {
                 return (
                   <div
                     key={t.trade_id || `${t.symbol}-${t.entry_time}`}
-                    className="grid grid-cols-7 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm"
+                    className="grid grid-cols-9 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm items-center"
                   >
                     <span className="font-medium text-white">{t.symbol}</span>
 
@@ -567,13 +557,26 @@ export default function TradeEntry() {
 
                     <span className="text-zinc-300">{formatPrice(t.entry_price)}</span>
 
+                    <span className="text-zinc-400">{formatDateTime(t.exit_time)}</span>
+
                     <span className="text-zinc-300">{t.exit_price != null ? formatPrice(t.exit_price) : "—"}</span>
 
                     <span className="text-zinc-400">{formatQuantity(t.quantity)}</span>
 
-                    <span className={`text-right font-medium ${isOpen ? "text-zinc-500" : getPnlColor(pnl)}`}>
+                    <span className={`text-right font-medium ${isOpen ? "text-amber-400" : getPnlColor(pnl)}`}>
                       {isOpen ? "Open" : formatCurrency(pnl)}
                     </span>
+
+                    <div className="flex justify-end">
+                      {isOpen && (
+                        <button
+                          onClick={() => { setCloseError(""); setClosingTrade(t); }}
+                          className="text-xs text-zinc-400 hover:text-emerald-400 border border-zinc-700 hover:border-emerald-500 rounded-md px-3 py-1 transition"
+                        >
+                          Close
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -581,7 +584,15 @@ export default function TradeEntry() {
 
           </div>
         </section>
-
+        {closingTrade && (
+          <CloseTradeModal
+            trade={closingTrade}
+            onConfirm={handleCloseTrade}
+            onCancel={() => { setClosingTrade(null); setCloseError(""); }}
+            isSubmitting={closeSubmitting}
+            error={closeError}
+          />
+        )}
       </main>
     </div>
   );

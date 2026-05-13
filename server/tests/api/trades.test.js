@@ -2,7 +2,12 @@
 
 const request = require("supertest");
 const app = require("../../src/app");
-const { validTrade, invalidTrade } = require("../fixtures/trades");
+const {
+  validTrade,
+  invalidTrade,
+  openTrade,
+  createOpenTrade,
+} = require("../fixtures/trades");
 const { getAuthCookie, clearDatabase } = require("../fixtures/auth");
 
 /**
@@ -335,5 +340,115 @@ describe("Trade API", () => {
     expect(res.body.error).toBeDefined();
     expect(res.body.error.message).toMatch(/exit time/i);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  // =========================
+  // Test Case 1.10
+  // Close an open trade
+  // =========================
+  /**
+   * Validates that a PATCH to /close updates the trade
+   * to closed status with exit data populated.
+   *
+   * EXPECTED:
+   * - HTTP 200
+   * - trade_status is "closed"
+   * - exit_price and closed_at are set
+   */
+  it("closes an open trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const res = await request(app)
+      .patch(`/api/trades/${trade.trade_id}/close`)
+      .set("Cookie", cookie)
+      .send({
+        exitPrice: 150,
+        exitTime: "2024-01-10T11:00:00",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.trade_status).toBe("closed");
+    expect(res.body.data.exit_price).toBeDefined();
+    expect(res.body.data.closed_at).toBeDefined();
+  });
+
+  // =========================
+  // Test Case 1.11
+  // Cannot close an already closed trade
+  // =========================
+  /**
+   * Validates that closing an already-closed trade
+   * returns a 400 with a descriptive error.
+   *
+   * EXPECTED:
+   * - HTTP 400
+   * - error code TRADE_ALREADY_CLOSED
+   */
+  it("returns 400 when closing an already closed trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    // Close it once
+    await request(app)
+      .patch(`/api/trades/${trade.trade_id}/close`)
+      .set("Cookie", cookie)
+      .send({ exitPrice: 150, exitTime: "2024-01-10T11:00:00" });
+
+    // Close it again
+    const res = await request(app)
+      .patch(`/api/trades/${trade.trade_id}/close`)
+      .set("Cookie", cookie)
+      .send({ exitPrice: 155, exitTime: "2024-01-10T12:00:00" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("TRADE_ALREADY_CLOSED");
+  });
+
+  // =========================
+  // Test Case 1.12
+  // Cannot close another user's trade
+  // =========================
+  /**
+   * Validates that closing a trade belonging to a different
+   * user returns 403.
+   *
+   * EXPECTED:
+   * - HTTP 403
+   * - error code FORBIDDEN
+   */
+  it("returns 403 when closing another user's trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    // Create a second authenticated user
+    const otherCookie = await getAuthCookie();
+
+    const res = await request(app)
+      .patch(`/api/trades/${trade.trade_id}/close`)
+      .set("Cookie", otherCookie)
+      .send({ exitPrice: 150, exitTime: "2024-01-10T11:00:00" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
+  });
+
+  // =========================
+  // Test Case 1.13
+  // Cannot close a non-existent trade
+  // =========================
+  /**
+   * Validates that closing a trade that does not exist
+   * returns 404.
+   *
+   * EXPECTED:
+   * - HTTP 404
+   * - error code NOT_FOUND
+   */
+  it("returns 404 when closing a non-existent trade", async () => {
+    const res = await request(app)
+      .patch("/api/trades/00000000-0000-0000-0000-000000000000/close")
+      .set("Cookie", cookie)
+      .send({ exitPrice: 150, exitTime: "2024-01-10T11:00:00" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
   });
 });
