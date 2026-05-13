@@ -174,4 +174,124 @@ describe("Authentication System", () => {
     const res = await request(app).get("/api/trades").set("Cookie", cookie);
     expect(res.status).toBe(200);
   });
+
+  // =========================
+  // Test Case 3.8
+  // Duplicate Email Registration
+  // =========================
+  /**
+   * Ensures that registering with an existing email
+   * returns a 409 Conflict.
+   *
+   * WHY:
+   * - Validates duplicate email constraint handling
+   * - Confirms structured error response shape
+   */
+  it("rejects duplicate email registration", async () => {
+    // Register first user
+    await request(app)
+      .post("/api/auth/register")
+      .send({ email: "duplicate@example.com", password: "Password1!" });
+
+    // Attempt duplicate registration
+    const res = await request(app)
+      .post("/api/auth/register")
+      .send({ email: "duplicate@example.com", password: "Password1!" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/already exists/i);
+    expect(res.body.error.code).toBe("DUPLICATE_ERROR");
+  });
+
+  // =========================
+  // Test Case 3.9
+  // Login With Wrong Password
+  // =========================
+  /**
+   * Ensures that login with incorrect password
+   * returns a 401 Unauthorized.
+   *
+   * WHY:
+   * - Validates credential verification logic
+   * - Confirms error shape on auth failure
+   */
+  it("rejects login with wrong password", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "test@example.com", password: "WrongPassword1!" });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/invalid credentials/i);
+    expect(res.body.error.code).toBe("INVALID_CREDENTIALS");
+  });
+
+  // =========================
+  // Test Case 3.10
+  // Login With Non-Existent Email
+  // =========================
+  /**
+   * Ensures that login with an unregistered email
+   * returns a 401 Unauthorized.
+   *
+   * WHY:
+   * - Validates that non-existent users are rejected
+   * - Confirms same error shape as wrong password
+   *   to prevent email enumeration
+   */
+  it("rejects login with non-existent email", async () => {
+    const res = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "nobody@example.com", password: "Password1!" });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/invalid credentials/i);
+    expect(res.body.error.code).toBe("INVALID_CREDENTIALS");
+  });
+
+  // =========================
+  // Test Case 3.11
+  // Register With Missing Email
+  // =========================
+  /**
+   * Ensures that registration without an email
+   * returns a 400 Bad Request.
+   *
+   * WHY:
+   * - Validates required field enforcement
+   * - Confirms error shape on validation failure
+   */
+  it("rejects registration with missing email", async () => {
+    const res = await request(app)
+      .post("/api/auth/register")
+      .send({ password: "Password1!" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  // =========================
+  // Test Case 3.12
+  // Register With Missing Password
+  // =========================
+  /**
+   * Ensures that registration without a password
+   * returns a 400 Bad Request.
+   *
+   * WHY:
+   * - Validates required field enforcement
+   * - Confirms error shape on validation failure
+   */
+  it("rejects registration with missing password", async () => {
+    const res = await request(app)
+      .post("/api/auth/register")
+      .send({ email: "test@example.com" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
 });

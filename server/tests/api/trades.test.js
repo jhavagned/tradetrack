@@ -248,4 +248,92 @@ describe("Trade API", () => {
       expect(res.body.error.message).toMatch(/invalid trade type/i);
     }
   });
+
+  // =========================
+  // Test Case 1.7
+  // Negative Exit Price
+  // =========================
+  /**
+   * Validates that a negative exit price is rejected.
+   *
+   * WHY:
+   * - Prevents invalid financial data
+   * - Enforces positive number constraint on exit price
+   */
+  it("rejects negative exit price", async () => {
+    const res = await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        exitPrice: -50,
+        quantity: 1,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/greater than 0/i);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  // =========================
+  // Test Case 1.8
+  // Zero Quantity
+  // =========================
+  /**
+   * Validates that a zero quantity is rejected.
+   *
+   * WHY:
+   * - A trade with zero quantity is meaningless
+   * - Enforces positive integer constraint on quantity
+   */
+  it("rejects zero quantity", async () => {
+    const res = await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        quantity: 0,
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/greater than 0/i);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  // =========================
+  // Test Case 1.9
+  // Exit Time Before Entry Time
+  // =========================
+  /**
+   * Validates that exit time cannot be before entry time.
+   *
+   * WHY:
+   * - A trade cannot close before it opens
+   * - Enforces temporal integrity of trade lifecycle
+   */
+  it("rejects exit time before entry time", async () => {
+    const res = await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        exitPrice: 110,
+        quantity: 1,
+        entryTime: "2024-01-10T10:00:00",
+        exitTime: "2024-01-09T10:00:00",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+    expect(res.body.error.message).toMatch(/exit time/i);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
 });
