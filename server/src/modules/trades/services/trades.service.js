@@ -3,6 +3,7 @@
 const {
   validateTrade,
   validateCloseTrade,
+  validateEditTrade,
 } = require("../validation/trades.validation");
 const TradesRepository = require("../repositories/trades.repository");
 const createLogger = require("../../../utils/logger");
@@ -252,6 +253,107 @@ const TradesService = {
     await TradesRepository.deleteTrade(tradeId);
 
     logger.info("Trade deleted successfully", { tradeId });
+  },
+
+  /**
+   * Edit a trade
+   *
+   * FLOW:
+   * Controller → Service → Validation → Existence Check → Ownership Check → Normalization → Repository
+   *
+   * BUSINESS RULES:
+   * - Trade must exist (404)
+   * - Trade must belong to the requesting user (403)
+   * - All existing validation rules apply
+   * - trade_status and closed_at are recalculated from exitPrice
+   *
+   * @param {string} tradeId    - UUID of the trade to edit
+   * @param {string} userId     - UUID of the authenticated user
+   * @param {Object} tradeInput - Raw edit payload from request
+   * @returns {Object} The updated trade
+   */
+  editTrade: async (tradeId, userId, tradeInput) => {
+    logger.debug("Starting edit trade", { tradeId, userId });
+
+    // =========================
+    // Validation
+    // =========================
+    const validationError = validateEditTrade(tradeInput);
+
+    if (validationError) {
+      logger.warn("Edit trade validation failed", {
+        error: validationError.message,
+        field: validationError.field,
+      });
+
+      const err = new Error(validationError.message);
+      err.code = "VALIDATION_ERROR";
+      err.status = 400;
+      err.field = validationError.field;
+      throw err;
+    }
+
+    // =========================
+    // Existence check
+    // =========================
+    const trade = await TradesRepository.findById(tradeId);
+
+    if (!trade) {
+      logger.warn("Edit trade failed — trade not found", { tradeId });
+
+      const err = new Error("Trade not found");
+      err.code = "NOT_FOUND";
+      err.status = 404;
+      throw err;
+    }
+
+    // =========================
+    // Ownership check
+    // =========================
+    if (trade.user_id !== userId) {
+      logger.warn("Edit trade failed — forbidden", { tradeId, userId });
+
+      const err = new Error("You do not have permission to edit this trade");
+      err.code = "FORBIDDEN";
+      err.status = 403;
+      throw err;
+    }
+
+    // =========================
+    // Normalization
+    // Recalculate trade_status and closed_at from exitPrice
+    // =========================
+    const exitPrice = tradeInput.exitPrice
+      ? Number(tradeInput.exitPrice)
+      : null;
+    const tradeStatus = exitPrice ? "closed" : "open";
+    const closedAt = exitPrice ? new Date() : null;
+
+    const updatedFields = {
+      symbol: tradeInput.symbol,
+      tradeType: tradeInput.type,
+      entryPrice: Number(tradeInput.entryPrice),
+      exitPrice,
+      entryTime: tradeInput.entryTime || null,
+      exitTime: tradeInput.exitTime || null,
+      quantity: Number(tradeInput.quantity),
+      notes: tradeInput.notes || null,
+      strategy: tradeInput.strategy || null,
+      tradeStatus,
+      closedAt,
+    };
+
+    // =========================
+    // Persist
+    // =========================
+    const updatedTrade = await TradesRepository.updateTrade(
+      tradeId,
+      updatedFields,
+    );
+
+    logger.info("Trade edited successfully", { tradeId });
+
+    return updatedTrade;
   },
 };
 

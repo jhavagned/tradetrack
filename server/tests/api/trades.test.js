@@ -525,4 +525,159 @@ describe("Trade API", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("NOT_FOUND");
   });
+
+  // =========================
+  // Test Case 1.17
+  // Edit a trade — success
+  // =========================
+  /**
+   * Validates that a trade is successfully updated
+   * with new field values.
+   *
+   * EXPECTED:
+   * - HTTP 200
+   * - Returned trade reflects updated values
+   */
+  it("edits a trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const res = await request(app)
+      .put(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", cookie)
+      .send({
+        symbol: "TSLA",
+        type: "SELL",
+        entryPrice: 200,
+        quantity: 2,
+        entryTime: "2026-04-21T09:00:00Z",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.symbol).toBe("TSLA");
+    expect(res.body.data.trade_type).toBe("SELL");
+    expect(res.body.data.trade_status).toBe("open");
+  });
+
+  // =========================
+  // Test Case 1.18
+  // Edit recalculates trade_status and closed_at
+  // =========================
+  /**
+   * Validates that adding an exitPrice on edit
+   * recalculates trade_status to closed.
+   *
+   * EXPECTED:
+   * - HTTP 200
+   * - trade_status is "closed"
+   * - closed_at is set
+   */
+  it("recalculates trade_status when exitPrice is added on edit", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const res = await request(app)
+      .put(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        quantity: 1,
+        entryTime: "2026-04-21T09:00:00Z",
+        exitPrice: 150,
+        exitTime: "2026-04-21T10:00:00Z",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.trade_status).toBe("closed");
+    expect(res.body.data.closed_at).toBeDefined();
+  });
+
+  // =========================
+  // Test Case 1.19
+  // Cannot edit another user's trade
+  // =========================
+  /**
+   * Validates that editing a trade belonging to a different
+   * user returns 403.
+   *
+   * EXPECTED:
+   * - HTTP 403
+   * - error code FORBIDDEN
+   */
+  it("returns 403 when editing another user's trade", async () => {
+    const trade = await createOpenTrade(cookie);
+    const otherCookie = await getAuthCookie();
+
+    const res = await request(app)
+      .put(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", otherCookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        quantity: 1,
+        entryTime: "2026-04-21T09:00:00Z",
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
+  });
+
+  // =========================
+  // Test Case 1.20
+  // Cannot edit a non-existent trade
+  // =========================
+  /**
+   * Validates that editing a trade that does not exist
+   * returns 404.
+   *
+   * EXPECTED:
+   * - HTTP 404
+   * - error code NOT_FOUND
+   */
+  it("returns 404 when editing a non-existent trade", async () => {
+    const res = await request(app)
+      .put("/api/trades/00000000-0000-0000-0000-000000000000")
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        quantity: 1,
+        entryTime: "2026-04-21T09:00:00Z",
+      });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
+
+  // =========================
+  // Test Case 1.21
+  // Edit validation applies
+  // =========================
+  /**
+   * Validates that existing validation rules
+   * are enforced on edit payloads.
+   *
+   * EXPECTED:
+   * - HTTP 400
+   * - error code VALIDATION_ERROR
+   */
+  it("returns 400 when edit payload fails validation", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const res = await request(app)
+      .put(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: -100,
+        quantity: 1,
+        entryTime: "2026-04-21T09:00:00Z",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
 });

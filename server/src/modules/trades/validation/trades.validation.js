@@ -162,8 +162,114 @@ function validateCloseTrade(payload) {
   return null;
 }
 
+/**
+ * Validates the payload for editing a trade
+ *
+ * Mirrors validateTrade but operates on normalized field names
+ * to match the existing trade record shape.
+ *
+ * @param {Object} trade - Incoming edit payload
+ * @returns {null | { message: string, field?: string }}
+ */
+function validateEditTrade(trade) {
+  if (!trade || typeof trade !== "object") {
+    return createValidationError("Invalid payload");
+  }
+
+  const { symbol, type, entryPrice, quantity, exitPrice, exitTime, entryTime } =
+    trade;
+
+  // =========================
+  // Required fields
+  // =========================
+  if (!symbol) {
+    return createValidationError("Symbol is required", "symbol");
+  }
+
+  if (!type) {
+    return createValidationError("Trade type is required", "type");
+  }
+
+  if (entryPrice == null) {
+    return createValidationError("Entry price is required", "entryPrice");
+  }
+
+  if (quantity == null) {
+    return createValidationError("Quantity is required", "quantity");
+  }
+
+  // =========================
+  // Enum validation
+  // =========================
+  if (!Object.values(TRADE_TYPES).includes(type)) {
+    return createValidationError("Invalid trade type", "type");
+  }
+
+  // =========================
+  // Numeric validation (NaN)
+  // =========================
+  if (isNaN(Number(entryPrice))) {
+    return createValidationError("Entry price must be a number", "entryPrice");
+  }
+
+  if (isNaN(Number(quantity))) {
+    return createValidationError("Quantity must be a number", "quantity");
+  }
+
+  if (exitPrice != null && isNaN(Number(exitPrice))) {
+    return createValidationError("Exit price must be a number", "exitPrice");
+  }
+
+  // =========================
+  // Numeric validation (range)
+  // =========================
+  if (Number(entryPrice) <= 0) {
+    return createValidationError(
+      "Entry price must be greater than 0",
+      "entryPrice",
+    );
+  }
+
+  if (Number(quantity) <= 0) {
+    return createValidationError("Quantity must be greater than 0", "quantity");
+  }
+
+  if (exitPrice != null && Number(exitPrice) <= 0) {
+    return createValidationError(
+      "Exit price must be greater than 0",
+      "exitPrice",
+    );
+  }
+
+  // =========================
+  // Exit data consistency
+  // =========================
+  const hasExitPrice = exitPrice != null;
+  const hasExitTime = !!exitTime;
+
+  if ((hasExitPrice || hasExitTime) && !(hasExitPrice && hasExitTime)) {
+    return createValidationError(
+      "Exit price and exit time must both be provided",
+      "exit",
+    );
+  }
+
+  // =========================
+  // Temporal validation
+  // =========================
+  if (entryTime && exitTime && new Date(exitTime) <= new Date(entryTime)) {
+    return createValidationError(
+      "Exit time must be after entry time",
+      "exitTime",
+    );
+  }
+
+  return null;
+}
+
 module.exports = {
   validateTrade,
   validateCloseTrade,
+  validateEditTrade,
   TRADE_TYPES,
 };
