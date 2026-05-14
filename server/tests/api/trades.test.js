@@ -451,4 +451,78 @@ describe("Trade API", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("NOT_FOUND");
   });
+
+  // =========================
+  // Test Case 1.14
+  // Delete a trade
+  // =========================
+  /**
+   * Validates that a trade is successfully deleted.
+   *
+   * EXPECTED:
+   * - HTTP 200
+   * - Trade no longer returned in findAll
+   */
+  it("deletes a trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const res = await request(app)
+      .delete(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Trade deleted");
+
+    // Confirm it's gone
+    const listRes = await request(app).get("/api/trades").set("Cookie", cookie);
+
+    const ids = listRes.body.data.map((t) => t.trade_id);
+    expect(ids).not.toContain(trade.trade_id);
+  });
+
+  // =========================
+  // Test Case 1.15
+  // Cannot delete another user's trade
+  // =========================
+  /**
+   * Validates that deleting a trade belonging to a different
+   * user returns 403.
+   *
+   * EXPECTED:
+   * - HTTP 403
+   * - error code FORBIDDEN
+   */
+  it("returns 403 when deleting another user's trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const otherCookie = await getAuthCookie();
+
+    const res = await request(app)
+      .delete(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", otherCookie);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("FORBIDDEN");
+  });
+
+  // =========================
+  // Test Case 1.16
+  // Cannot delete a non-existent trade
+  // =========================
+  /**
+   * Validates that deleting a trade that does not exist
+   * returns 404.
+   *
+   * EXPECTED:
+   * - HTTP 404
+   * - error code NOT_FOUND
+   */
+  it("returns 404 when deleting a non-existent trade", async () => {
+    const res = await request(app)
+      .delete("/api/trades/00000000-0000-0000-0000-000000000000")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("NOT_FOUND");
+  });
 });

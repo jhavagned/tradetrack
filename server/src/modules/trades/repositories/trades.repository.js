@@ -147,6 +147,24 @@ const TradesRepository = {
       handleDbError(error);
     }
   },
+
+  /**
+   * Delete a trade by ID
+   *
+   * @param {string} tradeId - The trade's UUID
+   * @returns {void}
+   */
+  deleteTrade: async (tradeId) => {
+    logger.debug("Deleting trade from database", { tradeId });
+
+    try {
+      await query(`DELETE FROM trades WHERE trade_id = $1`, [tradeId]);
+
+      logger.debug("Trade deleted from database", { tradeId });
+    } catch (error) {
+      handleDbError(error);
+    }
+  },
 };
 
 module.exports = TradesRepository;

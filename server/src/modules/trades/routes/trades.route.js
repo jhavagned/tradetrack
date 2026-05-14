@@ -16,5 +16,6 @@ router.use(authMiddleware);
 router.get("/", TradesController.getAll);
 router.post("/", TradesController.create);
 router.patch("/:id/close", TradesController.closeTrade);
+router.delete("/:id", TradesController.deleteTrade);
 
 module.exports = router;
