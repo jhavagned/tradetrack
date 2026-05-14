@@ -16,6 +16,7 @@ import {
 import { formatCurrency, formatPrice, formatQuantity, formatDateTime } from "../utils/formatters";
 import CloseTradeModal from "../components/CloseTradeModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import EditTradeModal from "../components/EditTradeModal";
 
 /**
  * =========================================================
@@ -94,6 +95,10 @@ export default function TradeEntry() {
   const [deletingTrade, setDeletingTrade]     = useState(null);
   const [deleteError, setDeleteError]         = useState("");
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  const [editingTrade, setEditingTrade]       = useState(null);
+  const [editError, setEditError]             = useState("");
+  const [editSubmitting, setEditSubmitting]   = useState(false);
 
   // =========================================================
   // LOGOUT
@@ -313,6 +318,43 @@ export default function TradeEntry() {
       setDeleteError("Network error. Please try again.");
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  /**
+   * Submit edit trade request to backend
+   * Updates trade row in place on success
+   */
+  const handleEditTrade = async (tradeId, payload) => {
+    setEditError("");
+    setEditSubmitting(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/trades/${tradeId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.status !== "success") {
+        setEditError(data.error?.message || "Failed to update trade");
+        return;
+      }
+
+      // Update the row in place — no re-fetch needed
+      setTrades((prev) =>
+        prev.map((t) => (t.trade_id === tradeId ? data.data : t))
+      );
+
+      setEditingTrade(null);
+    } catch (err) {
+      console.error("Edit trade error:", err);
+      setEditError("Network error. Please try again.");
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -557,7 +599,7 @@ export default function TradeEntry() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
 
             {/* TABLE HEADER */}
-            <div className="grid grid-cols-9 gap-4 px-6 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
+            <div className="grid grid-cols-10 gap-4 px-6 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
               <span>Symbol</span>
               <span>Type</span>
               <span>Entry Time</span>
@@ -582,7 +624,7 @@ export default function TradeEntry() {
                 return (
                   <div
                     key={t.trade_id || `${t.symbol}-${t.entry_time}`}
-                    className="grid grid-cols-9 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm items-center"
+                    className="grid grid-cols-10 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm items-center"
                   >
                     <span className="font-medium text-white">{t.symbol}</span>
 
@@ -604,7 +646,7 @@ export default function TradeEntry() {
                       {isOpen ? "Open" : formatCurrency(pnl)}
                     </span>
 
-                    <div className="flex justify-end gap-2">
+                    <div className="col-span-2 flex justify-end gap-2">
                       {isOpen && (
                         <button
                           onClick={() => { setCloseError(""); setClosingTrade(t); }}
@@ -613,6 +655,12 @@ export default function TradeEntry() {
                           Close
                         </button>
                       )}
+                      <button
+                        onClick={() => { setEditError(""); setEditingTrade(t); }}
+                        className="text-xs text-zinc-400 hover:text-blue-400 border border-zinc-700 hover:border-blue-500 rounded-md px-3 py-1 transition"
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => { setDeleteError(""); setDeletingTrade(t); }}
                         className="text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500 rounded-md px-3 py-1 transition"
@@ -645,6 +693,16 @@ export default function TradeEntry() {
             onCancel={() => { setDeletingTrade(null); setDeleteError(""); }}
             isSubmitting={deleteSubmitting}
             error={deleteError}
+          />
+        )}
+
+        {editingTrade && (
+          <EditTradeModal
+            trade={editingTrade}
+            onConfirm={handleEditTrade}
+            onCancel={() => { setEditingTrade(null); setEditError(""); }}
+            isSubmitting={editSubmitting}
+            error={editError}
           />
         )}
       </main>

@@ -165,6 +165,73 @@ const TradesRepository = {
       handleDbError(error);
     }
   },
+
+  /**
+   * Update a trade by ID
+   *
+   * @param {string} tradeId    - The trade's UUID
+   * @param {Object} fields     - { symbol, tradeType, entryPrice, exitPrice,
+   *                               entryTime, exitTime, quantity, notes,
+   *                               strategy, tradeStatus, closedAt }
+   * @returns {Object} The updated trade row
+   */
+  updateTrade: async (
+    tradeId,
+    {
+      symbol,
+      tradeType,
+      entryPrice,
+      exitPrice,
+      entryTime,
+      exitTime,
+      quantity,
+      notes,
+      strategy,
+      tradeStatus,
+      closedAt,
+    },
+  ) => {
+    logger.debug("Updating trade in database", { tradeId });
+
+    try {
+      const { rows } = await query(
+        `UPDATE trades
+        SET symbol       = $1,
+            trade_type   = $2,
+            entry_price  = $3,
+            exit_price   = $4,
+            entry_time   = $5,
+            exit_time    = $6,
+            quantity     = $7,
+            notes        = $8,
+            strategy     = $9,
+            trade_status = $10,
+            closed_at    = $11
+        WHERE trade_id = $12
+        RETURNING *`,
+        [
+          symbol,
+          tradeType,
+          entryPrice,
+          exitPrice || null,
+          entryTime || null,
+          exitTime || null,
+          quantity,
+          notes || null,
+          strategy || null,
+          tradeStatus,
+          closedAt,
+          tradeId,
+        ],
+      );
+
+      logger.debug("Trade updated in database", { tradeId });
+
+      return rows[0];
+    } catch (error) {
+      handleDbError(error);
+    }
+  },
 };
 
 module.exports = TradesRepository;

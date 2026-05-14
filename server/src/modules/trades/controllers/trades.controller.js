@@ -158,6 +158,36 @@ const TradesController = {
       return sendError(res, err);
     }
   },
+
+  /**
+   * PUT /api/trades/:id
+   * Edit a trade
+   */
+  editTrade: async (req, res) => {
+    const { id } = req.params;
+
+    logger.info("Edit trade request received", { tradeId: id });
+
+    try {
+      const trade = await TradesService.editTrade(id, req.userId, req.body);
+
+      const response = sendSuccess(res, {
+        message: "Trade updated",
+        data: trade,
+      });
+
+      logger.info("Edit trade response sent", { tradeId: id });
+
+      return response;
+    } catch (err) {
+      logger.error("Edit trade failed in controller", {
+        tradeId: id,
+        error: err.message,
+      });
+
+      return sendError(res, err);
+    }
+  },
 };
 
 module.exports = TradesController;
