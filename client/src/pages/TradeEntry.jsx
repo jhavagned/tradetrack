@@ -15,6 +15,7 @@ import {
 } from "../utils/validation";
 import { formatCurrency, formatPrice, formatQuantity, formatDateTime } from "../utils/formatters";
 import CloseTradeModal from "../components/CloseTradeModal";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 
 /**
  * =========================================================
@@ -86,9 +87,13 @@ export default function TradeEntry() {
    */
   const [trades, setTrades] = useState([]);
 
-  const [closingTrade, setClosingTrade]       = useState(null);  // trade being closed
+  const [closingTrade, setClosingTrade]       = useState(null); 
   const [closeError, setCloseError]           = useState("");
   const [closeSubmitting, setCloseSubmitting] = useState(false);
+
+  const [deletingTrade, setDeletingTrade]     = useState(null);
+  const [deleteError, setDeleteError]         = useState("");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   // =========================================================
   // LOGOUT
@@ -276,6 +281,38 @@ export default function TradeEntry() {
       setCloseError("Network error. Please try again.");
     } finally {
       setCloseSubmitting(false);
+    }
+  };
+
+  /**
+   * Submit delete trade request to backend
+   * Removes trade row from list on success
+   */
+  const handleDeleteTrade = async (tradeId) => {
+    setDeleteError("");
+    setDeleteSubmitting(true);
+
+    try {
+      const res = await fetch(`${API_URL}/api/trades/${tradeId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.status !== "success") {
+        setDeleteError(data.error?.message || "Failed to delete trade");
+        return;
+      }
+
+      // Remove row without re-fetch
+      setTrades((prev) => prev.filter((t) => t.trade_id !== tradeId));
+      setDeletingTrade(null);
+    } catch (err) {
+      console.error("Delete trade error:", err);
+      setDeleteError("Network error. Please try again.");
+    } finally {
+      setDeleteSubmitting(false);
     }
   };
 
@@ -567,7 +604,7 @@ export default function TradeEntry() {
                       {isOpen ? "Open" : formatCurrency(pnl)}
                     </span>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
                       {isOpen && (
                         <button
                           onClick={() => { setCloseError(""); setClosingTrade(t); }}
@@ -576,6 +613,13 @@ export default function TradeEntry() {
                           Close
                         </button>
                       )}
+                      <button
+                        onClick={() => { setDeleteError(""); setDeletingTrade(t); }}
+                        className="text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500 rounded-md px-3 py-1 transition"
+                      >
+                        Delete
+                      </button>
+
                     </div>
                   </div>
                 );
@@ -591,6 +635,16 @@ export default function TradeEntry() {
             onCancel={() => { setClosingTrade(null); setCloseError(""); }}
             isSubmitting={closeSubmitting}
             error={closeError}
+          />
+        )}
+        
+        {deletingTrade && (
+          <DeleteConfirmModal
+            trade={deletingTrade}
+            onConfirm={handleDeleteTrade}
+            onCancel={() => { setDeletingTrade(null); setDeleteError(""); }}
+            isSubmitting={deleteSubmitting}
+            error={deleteError}
           />
         )}
       </main>

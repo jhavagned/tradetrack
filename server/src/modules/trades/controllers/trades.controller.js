@@ -129,6 +129,35 @@ const TradesController = {
       return sendError(res, err);
     }
   },
+
+  /**
+   * DELETE /api/trades/:id
+   * Delete a trade
+   */
+  deleteTrade: async (req, res) => {
+    const { id } = req.params;
+
+    logger.info("Delete trade request received", { tradeId: id });
+
+    try {
+      await TradesService.deleteTrade(id, req.userId);
+
+      const response = sendSuccess(res, {
+        message: "Trade deleted",
+      });
+
+      logger.info("Delete trade response sent", { tradeId: id });
+
+      return response;
+    } catch (err) {
+      logger.error("Delete trade failed in controller", {
+        tradeId: id,
+        error: err.message,
+      });
+
+      return sendError(res, err);
+    }
+  },
 };
 
 module.exports = TradesController;

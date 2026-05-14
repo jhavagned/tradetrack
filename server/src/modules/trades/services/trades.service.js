@@ -202,6 +202,57 @@ const TradesService = {
 
     return updatedTrade;
   },
+
+  /**
+   * Delete a trade
+   *
+   * FLOW:
+   * Controller → Service → Existence Check → Ownership Check → Repository
+   *
+   * BUSINESS RULES:
+   * - Trade must exist (404)
+   * - Trade must belong to the requesting user (403)
+   *
+   * @param {string} tradeId - UUID of the trade to delete
+   * @param {string} userId  - UUID of the authenticated user
+   * @returns {void}
+   */
+  deleteTrade: async (tradeId, userId) => {
+    logger.debug("Starting delete trade", { tradeId, userId });
+
+    // =========================
+    // Existence check
+    // =========================
+    const trade = await TradesRepository.findById(tradeId);
+
+    if (!trade) {
+      logger.warn("Delete trade failed — trade not found", { tradeId });
+
+      const err = new Error("Trade not found");
+      err.code = "NOT_FOUND";
+      err.status = 404;
+      throw err;
+    }
+
+    // =========================
+    // Ownership check
+    // =========================
+    if (trade.user_id !== userId) {
+      logger.warn("Delete trade failed — forbidden", { tradeId, userId });
+
+      const err = new Error("You do not have permission to delete this trade");
+      err.code = "FORBIDDEN";
+      err.status = 403;
+      throw err;
+    }
+
+    // =========================
+    // Persist
+    // =========================
+    await TradesRepository.deleteTrade(tradeId);
+
+    logger.info("Trade deleted successfully", { tradeId });
+  },
 };
 
 module.exports = TradesService;
