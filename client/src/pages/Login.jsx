@@ -72,7 +72,7 @@ export default function Login() {
 
             setMessage("Login successful");
 
-            navigate("/trade");
+            navigate("/dashboard");
         } catch (err) {
             console.error("LOGIN ERROR:", err);
             setMessage(err.message || "Network error");

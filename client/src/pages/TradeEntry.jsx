@@ -6,7 +6,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { API_URL } from "../config/api.js";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   validatePositiveNumber,
   validatePositiveInteger,
@@ -404,7 +404,7 @@ export default function TradeEntry() {
             Trade<span className="text-emerald-400">Track</span>
           </h1>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs text-zinc-500 uppercase tracking-wider">Total P&L</p>
               <p className={`text-lg font-bold ${getPnlColor(totalPnl)}`}>
@@ -412,6 +412,13 @@ export default function TradeEntry() {
               </p>
             </div>
 
+            <Link
+              to="/dashboard"
+              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-4 py-2 transition"
+            >
+              Dashboard
+            </Link>
+            
             <button
               onClick={handleLogout}
               className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-4 py-2 transition"
