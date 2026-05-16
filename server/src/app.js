@@ -21,7 +21,7 @@ const app = express();
 // Enable CORS (frontend communication)
 app.use(
   cors({
-    origin: true,
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   }),
 );
