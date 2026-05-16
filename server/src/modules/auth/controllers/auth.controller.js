@@ -121,7 +121,8 @@ const login = async (req, res) => {
     // 3. Set session cookie
     res.cookie("sessionId", session.sessionId, {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
     });
 
     logger.info("User logged in", { userId: user.userId });
@@ -157,8 +158,8 @@ const handleLogout = async (req, res) => {
   // Clear cookie (match options used when setting it)
   res.clearCookie("sessionId", {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false, // set to true in production (requires HTTPS)
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: process.env.NODE_ENV === "production", // set to true in production (requires HTTPS)
   });
 
   logger.info("User logged out", {
