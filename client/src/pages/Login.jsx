@@ -94,7 +94,7 @@ export default function Login() {
                 </div>
 
                 {/* CARD */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-xl">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-xl">
 
                     <form onSubmit={handleLogin} className="space-y-5">
 
@@ -131,8 +131,8 @@ export default function Login() {
                         {/* ERROR MESSAGE */}
                         {message && (
                             <p className={`text-sm rounded-lg px-4 py-2.5 border ${message === "Login successful"
-                                    ? "text-emerald-400 bg-emerald-950 border-emerald-800"
-                                    : "text-red-400 bg-red-950 border-red-800"
+                                ? "text-emerald-400 bg-emerald-950 border-emerald-800"
+                                : "text-red-400 bg-red-950 border-red-800"
                                 }`}>
                                 {message}
                             </p>

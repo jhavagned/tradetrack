@@ -398,30 +398,30 @@ export default function TradeEntry() {
     <div className="min-h-screen bg-zinc-950 text-white">
 
       {/* HEADER */}
-      <header className="border-b border-zinc-800 bg-zinc-900 px-6 py-4">
+      <header className="border-b border-zinc-800 bg-zinc-900 px-4 sm:px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-tight">
             Trade<span className="text-emerald-400">Track</span>
           </h1>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <div className="text-right">
               <p className="text-xs text-zinc-500 uppercase tracking-wider">Total P&L</p>
-              <p className={`text-lg font-bold ${getPnlColor(totalPnl)}`}>
+              <p className={`text-base sm:text-lg font-bold ${getPnlColor(totalPnl)}`}>
                 {formatCurrency(totalPnl)}
               </p>
             </div>
 
             <Link
               to="/dashboard"
-              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-4 py-2 transition"
+              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 sm:px-4 py-2 transition"
             >
               Dashboard
             </Link>
             
             <button
               onClick={handleLogout}
-              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-4 py-2 transition"
+              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 sm:px-4 py-2 transition"
             >
               Logout
             </button>
@@ -429,7 +429,7 @@ export default function TradeEntry() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
 
         {/* TRADE ENTRY FORM */}
         <section>
@@ -441,7 +441,7 @@ export default function TradeEntry() {
             <form onSubmit={handleSubmit} className="space-y-6">
 
               {/* ROW 1: Symbol, Type, Quantity */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 uppercase tracking-wider mb-1.5">
                     Symbol
@@ -487,7 +487,7 @@ export default function TradeEntry() {
               </div>
 
               {/* ROW 2: Entry Price, Exit Price */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 uppercase tracking-wider mb-1.5">
                     Entry Price
@@ -517,7 +517,7 @@ export default function TradeEntry() {
               </div>
 
               {/* ROW 3: Entry Time, Exit Time */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 uppercase tracking-wider mb-1.5">
                     Entry Time
@@ -547,7 +547,7 @@ export default function TradeEntry() {
               </div>
 
               {/* ROW 4: Strategy, Notes */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 uppercase tracking-wider mb-1.5">
                     Strategy
@@ -605,81 +605,151 @@ export default function TradeEntry() {
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
 
-            {/* TABLE HEADER */}
-            <div className="grid grid-cols-10 gap-4 px-6 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
-              <span>Symbol</span>
-              <span>Type</span>
-              <span>Entry Time</span>
-              <span>Entry Price</span>
-              <span>Exit Time</span>
-              <span>Exit Price</span>
-              <span>Qty</span>
-              <span className="text-right">P&L</span>
-              <span></span>
+            {/* TABLE — desktop only */}
+            <div className="hidden sm:block">
+              <div className="grid grid-cols-10 gap-4 px-6 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
+                <span>Symbol</span>
+                <span>Type</span>
+                <span>Entry Time</span>
+                <span>Entry Price</span>
+                <span>Exit Time</span>
+                <span>Exit Price</span>
+                <span>Qty</span>
+                <span className="text-right">P&L</span>
+                <span className="col-span-2"></span>
+              </div>
+
+              {trades.length === 0 ? (
+                <div className="px-6 py-12 text-center text-zinc-600 text-sm">
+                  No trades yet. Add your first trade above.
+                </div>
+              ) : (
+                trades.filter(Boolean).map((t) => {
+                  const pnl = calculatePnL(t);
+                  const isOpen = t.exit_price == null;
+
+                  return (
+                    <div
+                      key={t.trade_id || `${t.symbol}-${t.entry_time}`}
+                      className="grid grid-cols-10 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm items-center"
+                    >
+                      <span className="font-medium text-white">{t.symbol}</span>
+                      <span className={t.trade_type === "BUY" ? "text-emerald-400" : "text-red-400"}>
+                        {t.trade_type}
+                      </span>
+                      <span className="text-zinc-400">{formatDateTime(t.entry_time)}</span>
+                      <span className="text-zinc-300">{formatPrice(t.entry_price)}</span>
+                      <span className="text-zinc-400">{formatDateTime(t.exit_time)}</span>
+                      <span className="text-zinc-300">{t.exit_price != null ? formatPrice(t.exit_price) : "—"}</span>
+                      <span className="text-zinc-400">{formatQuantity(t.quantity)}</span>
+                      <span className={`text-right font-medium ${isOpen ? "text-amber-400" : getPnlColor(pnl)}`}>
+                        {isOpen ? "Open" : formatCurrency(pnl)}
+                      </span>
+                      <div className="col-span-2 flex justify-end gap-2">
+                        {isOpen && (
+                          <button
+                            onClick={() => { setCloseError(""); setClosingTrade(t); }}
+                            className="text-xs text-zinc-400 hover:text-emerald-400 border border-zinc-700 hover:border-emerald-500 rounded-md px-3 py-1 transition"
+                          >
+                            Close
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { setEditError(""); setEditingTrade(t); }}
+                          className="text-xs text-zinc-400 hover:text-blue-400 border border-zinc-700 hover:border-blue-500 rounded-md px-3 py-1 transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => { setDeleteError(""); setDeletingTrade(t); }}
+                          className="text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500 rounded-md px-3 py-1 transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
 
-            {/* TRADE ROWS */}
-            {trades.length === 0 ? (
-              <div className="px-6 py-12 text-center text-zinc-600 text-sm">
-                No trades yet. Add your first trade above.
-              </div>
-            ) : (
-              trades.filter(Boolean).map((t) => {
-                const pnl = calculatePnL(t);
-                const isOpen = t.exit_price == null;
+            {/* CARDS — mobile only */}
+            <div className="sm:hidden">
+              {trades.length === 0 ? (
+                <div className="px-4 py-12 text-center text-zinc-600 text-sm">
+                  No trades yet. Add your first trade above.
+                </div>
+              ) : (
+                trades.filter(Boolean).map((t) => {
+                  const pnl = calculatePnL(t);
+                  const isOpen = t.exit_price == null;
 
-                return (
-                  <div
-                    key={t.trade_id || `${t.symbol}-${t.entry_time}`}
-                    className="grid grid-cols-10 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm items-center"
-                  >
-                    <span className="font-medium text-white">{t.symbol}</span>
+                  return (
+                    <div
+                      key={t.trade_id || `${t.symbol}-${t.entry_time}`}
+                      className="px-4 py-4 border-b border-zinc-800 last:border-0 space-y-3"
+                    >
+                      {/* Top row — symbol, type, P&L */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-white text-base">{t.symbol}</span>
+                          <span className={`text-sm font-medium ${t.trade_type === "BUY" ? "text-emerald-400" : "text-red-400"}`}>
+                            {t.trade_type}
+                          </span>
+                        </div>
+                        <span className={`font-semibold ${isOpen ? "text-amber-400" : getPnlColor(pnl)}`}>
+                          {isOpen ? "Open" : formatCurrency(pnl)}
+                        </span>
+                      </div>
 
-                    <span className={t.trade_type === "BUY" ? "text-emerald-400" : "text-red-400"}>
-                      {t.trade_type}
-                    </span>
+                      {/* Details grid */}
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-0.5">Entry</p>
+                          <p className="text-zinc-300">{formatPrice(t.entry_price)}</p>
+                          <p className="text-zinc-500 text-xs">{formatDateTime(t.entry_time)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-zinc-500 uppercase tracking-wider mb-0.5">Exit</p>
+                          <p className="text-zinc-300">{t.exit_price != null ? formatPrice(t.exit_price) : "—"}</p>
+                          <p className="text-zinc-500 text-xs">{formatDateTime(t.exit_time)}</p>
+                        </div>
+                      </div>
 
-                    <span className="text-zinc-400">{formatDateTime(t.entry_time)}</span>
+                      {/* Qty row */}
+                      <div className="text-sm">
+                        <span className="text-zinc-500">Qty </span>
+                        <span className="text-zinc-300">{formatQuantity(t.quantity)}</span>
+                      </div>
 
-                    <span className="text-zinc-300">{formatPrice(t.entry_price)}</span>
-
-                    <span className="text-zinc-400">{formatDateTime(t.exit_time)}</span>
-
-                    <span className="text-zinc-300">{t.exit_price != null ? formatPrice(t.exit_price) : "—"}</span>
-
-                    <span className="text-zinc-400">{formatQuantity(t.quantity)}</span>
-
-                    <span className={`text-right font-medium ${isOpen ? "text-amber-400" : getPnlColor(pnl)}`}>
-                      {isOpen ? "Open" : formatCurrency(pnl)}
-                    </span>
-
-                    <div className="col-span-2 flex justify-end gap-2">
-                      {isOpen && (
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-1">
+                        {isOpen && (
+                          <button
+                            onClick={() => { setCloseError(""); setClosingTrade(t); }}
+                            className="text-xs text-zinc-400 hover:text-emerald-400 border border-zinc-700 hover:border-emerald-500 rounded-md px-3 py-1.5 transition"
+                          >
+                            Close
+                          </button>
+                        )}
                         <button
-                          onClick={() => { setCloseError(""); setClosingTrade(t); }}
-                          className="text-xs text-zinc-400 hover:text-emerald-400 border border-zinc-700 hover:border-emerald-500 rounded-md px-3 py-1 transition"
+                          onClick={() => { setEditError(""); setEditingTrade(t); }}
+                          className="text-xs text-zinc-400 hover:text-blue-400 border border-zinc-700 hover:border-blue-500 rounded-md px-3 py-1.5 transition"
                         >
-                          Close
+                          Edit
                         </button>
-                      )}
-                      <button
-                        onClick={() => { setEditError(""); setEditingTrade(t); }}
-                        className="text-xs text-zinc-400 hover:text-blue-400 border border-zinc-700 hover:border-blue-500 rounded-md px-3 py-1 transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => { setDeleteError(""); setDeletingTrade(t); }}
-                        className="text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500 rounded-md px-3 py-1 transition"
-                      >
-                        Delete
-                      </button>
-
+                        <button
+                          onClick={() => { setDeleteError(""); setDeletingTrade(t); }}
+                          className="text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500 rounded-md px-3 py-1.5 transition"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
 
           </div>
         </section>
