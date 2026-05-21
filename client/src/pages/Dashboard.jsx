@@ -4,7 +4,6 @@
 // Imports
 // =========================
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
 import { API_URL } from "../config/api.js";
 import { useAuth } from "../context/AuthContext";
 import { formatCurrency } from "../utils/formatters";
@@ -18,6 +17,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { useNavigate, Link } from "react-router-dom";
 
 /**
  * =========================================================
@@ -56,18 +56,18 @@ const PnLTooltip = ({ active, payload, label }) => {
 // Component
 // =========================
 export default function Dashboard() {
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
   const { logout } = useAuth();
 
   // =========================
   // State
   // =========================
-  const [period, setPeriod]               = useState("day");
-  const [pnlData, setPnlData]             = useState([]);
-  const [winRate, setWinRate]             = useState(null);
-  const [symbols, setSymbols]             = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState("");
+  const [period, setPeriod] = useState("day");
+  const [pnlData, setPnlData] = useState([]);
+  const [winRate, setWinRate] = useState(null);
+  const [symbols, setSymbols] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // =========================
   // Helpers
@@ -121,7 +121,7 @@ export default function Dashboard() {
         symbolsRes.json(),
       ]);
 
-      setPnlData(pnlData.data   || []);
+      setPnlData(pnlData.data || []);
       setWinRate(winRateData.data || null);
       setSymbols(symbolsData.data || []);
     } catch (err) {
@@ -155,13 +155,13 @@ export default function Dashboard() {
           <div className="flex items-center gap-4">
             <Link
               to="/trade"
-              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-4 py-2 transition"
+              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 sm:px-4 py-2 transition"
             >
               Trade Log
             </Link>
             <button
               onClick={handleLogout}
-              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-4 py-2 transition"
+              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 sm:px-4 py-2 transition"
             >
               Logout
             </button>
@@ -169,7 +169,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
 
         {error && (
           <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-4 py-2.5">
@@ -183,7 +183,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">
               Overview
             </h2>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
 
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
                 <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Total Trades</p>
@@ -224,11 +224,10 @@ export default function Dashboard() {
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`text-xs px-3 py-1.5 rounded-md transition capitalize ${
-                    period === p
-                      ? "bg-zinc-700 text-white"
-                      : "text-zinc-500 hover:text-white"
-                  }`}
+                  className={`text-xs px-3 py-1.5 rounded-md transition capitalize ${period === p
+                    ? "bg-zinc-700 text-white"
+                    : "text-zinc-500 hover:text-white"
+                    }`}
                 >
                   {p}
                 </button>
