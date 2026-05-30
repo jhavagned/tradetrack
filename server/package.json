@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --runInBand --forceExit"
+    "test": "jest --runInBand --forceExit",
+    "build": "cd ../client && npm install && npm run build"
   },
   "jest": {
     "testEnvironment": "node",
