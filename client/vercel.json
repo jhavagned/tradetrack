@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "destination": "https://tradetrack-production-f05b.up.railway.app/$1",
+      "permanent": true
+    }
+  ]
+}
