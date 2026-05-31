@@ -65,6 +65,8 @@ app.get("/api/health", (req, res) => {
 if (process.env.NODE_ENV === "production") {
   const distPath = path.join(__dirname, "../../client/dist");
 
+  console.log("Serving static files from:", distPath);
+
   app.use(express.static(distPath));
 
   app.get("/{*path}", (req, res) => {
