@@ -2,9 +2,9 @@
 
 ![CI](https://github.com/jhavagned/tradetrack/actions/workflows/test.yml/badge.svg?branch=main)
 
-A production-grade full-stack trading journal application for tracking trades, and analysing trading performance.
+A full-stack trading journal application for tracking trades and analysing trading performance.
 
-**[Live Demo](https://tradetrack-smoky.vercel.app)**
+**[Live Demo](https://tradetrack-jugn.onrender.com)**
 
 ---
 
@@ -28,14 +28,14 @@ The goal was to build something genuinely useful while gaining hands-on experien
 
 ## Tech Stack
 
-| Layer    | Technology                                                |
-| -------- | --------------------------------------------------------- |
-| Frontend | React (Vite), Tailwind CSS, Recharts                      |
-| Backend  | Node.js, Express                                          |
-| Database | PostgreSQL (Docker locally, Supabase in production)       |
-| Testing  | Jest, Supertest                                           |
-| CI/CD    | GitHub Actions                                            |
-| Hosting  | Vercel (frontend), Railway (backend), Supabase (database) |
+| Layer    | Technology                                          |
+| -------- | --------------------------------------------------- |
+| Frontend | React (Vite), Tailwind CSS, Recharts                |
+| Backend  | Node.js, Express                                    |
+| Database | PostgreSQL (Docker locally, Supabase in production) |
+| Testing  | Jest, Supertest                                     |
+| CI/CD    | GitHub Actions                                      |
+| Hosting  | Render (full stack), Supabase (database)            |
 
 ---
 
@@ -48,6 +48,7 @@ The goal was to build something genuinely useful while gaining hands-on experien
 - Edit any trade — recalculates `trade_status` and `closed_at` automatically
 - Delete trades with confirmation modal
 - P&L calculation with futures contract multipliers (NQ, ES, MNQ, MES, and more)
+- Mobile responsive — card layout on small screens, table layout on desktop
 
 ### Analytics Dashboard
 
@@ -76,17 +77,13 @@ The goal was to build something genuinely useful while gaining hands-on experien
 ```
 client/                              # React frontend (Vite)
     .env                             # Frontend environment variables (VITE_API_URL)
-    vercel.json                      # SPA routing config for Vercel
     index.html                       # HTML entry point
     package.json                     # Frontend dependencies
     package-lock.json                # Locked dependency versions
     public/                          # Static assets served as-is
     src/
-        App.css                      # Global app styles
         App.jsx                      # Root component — sets up routing
-        index.css                    # Base/reset styles
         main.jsx                     # App entry point — mounts React root
-        assets/                      # Images, icons, static media
         components/
           CloseTradeModal.jsx        # Modal for closing open trades
           DeleteConfirmModal.jsx     # Modal for confirming trade deletion
@@ -294,28 +291,23 @@ cd server && npm test
 
 ## Production Deployment
 
+The frontend is served as static files directly from the Express backend.
+Both are deployed together as a single service on Render.
+
 | Layer    | Platform | Notes                    |
 | -------- | -------- | ------------------------ |
-| Frontend | Vercel   | Auto-deploys from `main` |
-| Backend  | Railway  | Auto-deploys from `main` |
+| App      | Render   | Auto-deploys from `main` |
 | Database | Supabase | Hosted PostgreSQL        |
 
 ### Environment Variables (Production)
 
-Backend (Railway):
+Render:
 
 ```env
 NODE_ENV=production
 DATABASE_URL=your_supabase_connection_string
 SESSION_SECRET=your_session_secret
 DB_POOL_MAX=30
-CLIENT_URL=your_vercel_url
-```
-
-Frontend (Vercel):
-
-```env
-VITE_API_URL=your_railway_url
 ```
 
 ---
@@ -324,9 +316,4 @@ VITE_API_URL=your_railway_url
 
 Every pull request and push to `main` automatically runs the full test suite via GitHub Actions. The badge at the top of this file reflects the current state of `main`.
 
-Every merge to `main` triggers automatic deployment:
-
-- **Vercel** redeploys the frontend
-- **Railway** redeploys the backend
-
-No manual deployment steps required — a passing PR merged to `main` is live in production within minutes.
+Every merge to `main` triggers automatic deployment to Render. No manual deployment steps required — a passing PR merged to `main` is live in production within minutes.
