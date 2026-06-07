@@ -19,7 +19,7 @@ Built end to end across the full software development lifecycle:
 - **Backend engineering** — REST API, session auth, request tracing, error handling
 - **Frontend engineering** — React SPA, component design, client-side validation
 - **Data** — PostgreSQL schema design, versioned migrations, analytics queries
-- **Testing** — 50 tests across 4 suites, isolated test database, CI pipeline
+- **Testing** — 54 tests across 4 suites, isolated test database, CI pipeline
 - **DevOps** — Docker for local development, GitHub Actions CI/CD, production deployment across three platforms
 
 The goal was to build something genuinely useful while gaining hands-on experience with the tools, patterns, and workflows used in professional software development.
@@ -49,6 +49,8 @@ The goal was to build something genuinely useful while gaining hands-on experien
 - Delete trades with confirmation modal
 - P&L calculation with futures contract multipliers (NQ, ES, MNQ, MES, and more)
 - Mobile responsive — card layout on small screens, table layout on desktop
+- Emotional state tracking (before, during, after) with emoji pill selectors
+- Trade detail view showing all trade information in one place
 
 ### Analytics Dashboard
 
@@ -88,6 +90,8 @@ client/                              # React frontend (Vite)
           CloseTradeModal.jsx        # Modal for closing open trades
           DeleteConfirmModal.jsx     # Modal for confirming trade deletion
           EditTradeModal.jsx         # Modal for editing trades
+          JournalSection.jsx         # Collapsible emotional state selector
+          TradeDetailModal.jsx       # Full trade detail view with emotional state
         config/
           api.js                     # API base URL from environment variable
         context/
@@ -125,7 +129,7 @@ server/                              # Node.js/Express backend
       auth/                          # Auth controller, service, repositories
       trades/                        # Trades controller, service, repository, validation
       analytics/                     # Analytics controller, service, repository
-    tests/                           # Jest test suites (50 tests, 4 suites)
+    tests/                           # Jest test suites (54 tests, 4 suites)
       api/
         auth.test.js                 # Authentication flows (12 tests)
         trades.test.js               # Trade business logic (21 tests)
@@ -247,11 +251,11 @@ psql -U postgres -d tradetrack_test -f server/src/db/migrations/002_add_entry_ex
 cd server && npm test
 ```
 
-**50 tests across 4 suites:**
+**54 tests across 4 suites:**
 
 | Suite               | Tests | Coverage                                        |
 | ------------------- | ----- | ----------------------------------------------- |
-| `trades.test.js`    | 21    | Trade creation, close, edit, delete, validation |
+| `trades.test.js`    | 25    | Trade creation, close, edit, delete, validation |
 | `auth.test.js`      | 12    | Registration, login, logout, session management |
 | `app.test.js`       | 8     | Request tracing, concurrency, error shape       |
 | `analytics.test.js` | 9     | P&L by period, win rate, symbol breakdown       |
