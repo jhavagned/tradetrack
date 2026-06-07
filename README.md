@@ -19,7 +19,7 @@ Built end to end across the full software development lifecycle:
 - **Backend engineering** — REST API, session auth, request tracing, error handling
 - **Frontend engineering** — React SPA, component design, client-side validation
 - **Data** — PostgreSQL schema design, versioned migrations, analytics queries
-- **Testing** — 54 tests across 4 suites, isolated test database, CI pipeline
+- **Testing** — 57 tests across 4 suites, isolated test database, CI pipeline
 - **DevOps** — Docker for local development, GitHub Actions CI/CD, production deployment across three platforms
 
 The goal was to build something genuinely useful while gaining hands-on experience with the tools, patterns, and workflows used in professional software development.
@@ -57,6 +57,7 @@ The goal was to build something genuinely useful while gaining hands-on experien
 - P&L over time — bar chart with day / week / month toggle
 - Win rate — total trades, wins, losses, breakevens
 - Symbol breakdown — ranked by total P&L with per-symbol win rate
+- Emotion insights — win rate by emotional state, most common emotion before wins and losses
 
 ### Authentication
 
@@ -129,16 +130,17 @@ server/                              # Node.js/Express backend
       auth/                          # Auth controller, service, repositories
       trades/                        # Trades controller, service, repository, validation
       analytics/                     # Analytics controller, service, repository
-    tests/                           # Jest test suites (54 tests, 4 suites)
+    tests/                           # Jest test suites (57 tests, 4 suites)
       api/
         auth.test.js                 # Authentication flows (12 tests)
-        trades.test.js               # Trade business logic (21 tests)
+        trades.test.js               # Trade business logic (25 tests)
         app.test.js                  # Infrastructure — requestId, concurrency (8 tests)
-        analytics.test.js            # Analytics endpoints (9 tests)
+        analytics.test.js            # Analytics endpoints (12 tests)
       fixtures/
         auth.js                      # Auth helpers
         trades.js                    # Trade fixtures
 
+package.json                         # Root package.json — coordinates build
 ```
 
 ### Request Flow
@@ -215,6 +217,7 @@ VITE_API_URL=http://localhost:5000
 ```bash
 psql -U postgres -d tradetrack -f server/src/db/migrations/001_initial_schema.sql
 psql -U postgres -d tradetrack -f server/src/db/migrations/002_add_entry_exit_time_to_trades.sql
+psql -U postgres -d tradetrack -f server/src/db/migrations/003_add_emotions_to_trades.sql
 ```
 
 ### 6. Start the Application
@@ -251,14 +254,14 @@ psql -U postgres -d tradetrack_test -f server/src/db/migrations/002_add_entry_ex
 cd server && npm test
 ```
 
-**54 tests across 4 suites:**
+**57 tests across 4 suites:**
 
 | Suite               | Tests | Coverage                                        |
 | ------------------- | ----- | ----------------------------------------------- |
 | `trades.test.js`    | 25    | Trade creation, close, edit, delete, validation |
 | `auth.test.js`      | 12    | Registration, login, logout, session management |
 | `app.test.js`       | 8     | Request tracing, concurrency, error shape       |
-| `analytics.test.js` | 9     | P&L by period, win rate, symbol breakdown       |
+| `analytics.test.js` | 12    | P&L by period, win rate, symbol breakdown       |
 
 ---
 
@@ -285,11 +288,12 @@ cd server && npm test
 
 ### Analytics
 
-| Method | Endpoint                                     | Description                       |
-| ------ | -------------------------------------------- | --------------------------------- |
-| GET    | `/api/analytics/pnl?period=day\|week\|month` | P&L grouped by period             |
-| GET    | `/api/analytics/win-rate`                    | Win rate across all closed trades |
-| GET    | `/api/analytics/symbols`                     | P&L and win rate by symbol        |
+| Method | Endpoint                                     | Description                              |
+| ------ | -------------------------------------------- | ---------------------------------------- |
+| GET    | `/api/analytics/pnl?period=day\|week\|month` | P&L grouped by period                    |
+| GET    | `/api/analytics/win-rate`                    | Win rate across all closed trades        |
+| GET    | `/api/analytics/symbols`                     | P&L and win rate by symbol               |
+| GET    | `/api/analytics/emotions`                    | Win rate and patterns by emotional state |
 
 ---
 

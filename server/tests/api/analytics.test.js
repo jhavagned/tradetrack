@@ -226,4 +226,70 @@ describe("Analytics API", () => {
     expect(winRateRes.status).toBe(401);
     expect(symbolRes.status).toBe(401);
   });
+
+  // =========================
+  // Test Case 4.10
+  // Emotion analytics — empty state
+  // =========================
+  /**
+   * Validates that emotion analytics returns empty state
+   * when no trades have emotion data.
+   */
+  it("returns empty state for emotion analytics when no emotion data exists", async () => {
+    await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send(validTrade());
+
+    const res = await request(app)
+      .get("/api/analytics/emotions")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.byEmotion).toEqual([]);
+    expect(res.body.data.mostCommonWin).toBeNull();
+    expect(res.body.data.mostCommonLoss).toBeNull();
+  });
+
+  // =========================
+  // Test Case 4.11
+  // Emotion analytics — with data
+  // =========================
+  /**
+   * Validates emotion analytics calculates correctly
+   * for trades with emotion_before set.
+   */
+  it("returns emotion analytics for trades with emotion data", async () => {
+    await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send({
+        ...validTrade(),
+        emotionBefore: "Calm",
+      });
+
+    const res = await request(app)
+      .get("/api/analytics/emotions")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.byEmotion.length).toBeGreaterThan(0);
+    expect(res.body.data.byEmotion[0].emotion).toBe("Calm");
+    expect(res.body.data.byEmotion[0].winRate).toBe(100);
+    expect(res.body.data.mostCommonWin).toBe("Calm");
+    expect(res.body.data.mostCommonLoss).toBeNull();
+  });
+
+  // =========================
+  // Test Case 4.12
+  // Emotion analytics — auth protection
+  // =========================
+  /**
+   * Validates that emotion analytics requires authentication.
+   */
+  it("returns 401 for unauthenticated emotion analytics request", async () => {
+    const res = await request(app).get("/api/analytics/emotions");
+
+    expect(res.status).toBe(401);
+  });
 });
