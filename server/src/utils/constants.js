@@ -21,4 +21,25 @@ const SYMBOL_MULTIPLIERS = {
   M2K: 5,
 };
 
-module.exports = { SYMBOL_MULTIPLIERS };
+/**
+ * Valid emotional state values
+ * Used for trade journal entries (before, during, after)
+ */
+const VALID_EMOTIONS = Object.freeze([
+  "Calm",
+  "Confident",
+  "Focused",
+  "Excited",
+  "Neutral",
+  "Uncertain",
+  "Confused",
+  "Anxious",
+  "Nervous",
+  "Fearful",
+  "Greedy",
+  "Impatient",
+  "FOMO",
+  "Revenge",
+]);
+
+module.exports = { SYMBOL_MULTIPLIERS, VALID_EMOTIONS };

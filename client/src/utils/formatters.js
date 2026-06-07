@@ -51,3 +51,24 @@ export const formatDateTime = (iso) => {
     minute: "2-digit",
   });
 };
+
+/**
+ * Converts a UTC ISO string to a local datetime-local input value
+ * e.g. "2026-04-21T13:00:00.000Z" → "2026-04-21T09:00" (for UTC-4)
+ */
+export const toLocalDateTimeInput = (iso) => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const offset = date.getTimezoneOffset() * 60000;
+  const local = new Date(date.getTime() - offset);
+  return local.toISOString().slice(0, 16);
+};
+
+/**
+ * Converts a datetime-local input value to a UTC ISO string
+ * e.g. "2026-05-21T14:10" (local) → "2026-05-21T18:10:00.000Z" (UTC)
+ */
+export const toUTCString = (localDatetime) => {
+  if (!localDatetime) return null;
+  return new Date(localDatetime).toISOString();
+};

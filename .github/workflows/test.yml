@@ -101,11 +101,11 @@ jobs:
 
           echo "All required environment variables are present"
         env:
-          DB_HOST:        localhost
-          DB_PORT:        "5432"
-          DB_NAME:        tradetrack
-          DB_USER:        postgres
-          DB_PASSWORD:    ${{ secrets.DB_PASSWORD }}
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: tradetrack
+          DB_USER: postgres
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
 
       # --------------------------------------------------------
@@ -129,6 +129,7 @@ jobs:
         run: |
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/001_initial_schema.sql
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/002_add_entry_exit_time_to_trades.sql
+          psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/003_add_emotions_to_trades.sql
 
       # --------------------------------------------------------
       # Run the Jest test suite.
