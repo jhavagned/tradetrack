@@ -52,6 +52,21 @@ const PnLTooltip = ({ active, payload, label }) => {
   );
 };
 
+const EMOTION_EMOJIS = {
+  Calm:      "😌",
+  Confident: "💪",
+  Focused:   "🎯",
+  Excited:   "😄",
+  Neutral:   "😐",
+  Anxious:   "😰",
+  Nervous:   "😬",
+  Fearful:   "😨",
+  Greedy:    "🤑",
+  Impatient: "⏰",
+  FOMO:      "😱",
+  Revenge:   "😤",
+};
+
 // =========================
 // Component
 // =========================
@@ -66,6 +81,7 @@ export default function Dashboard() {
   const [pnlData, setPnlData] = useState([]);
   const [winRate, setWinRate] = useState(null);
   const [symbols, setSymbols] = useState([]);
+  const [emotions, setEmotions] = useState({ byEmotion: [], mostCommonWin: null, mostCommonLoss: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -98,7 +114,7 @@ export default function Dashboard() {
     setError("");
 
     try {
-      const [pnlRes, winRateRes, symbolsRes] = await Promise.all([
+      const [pnlRes, winRateRes, symbolsRes, emotionsRes] = await Promise.all([
         fetch(`${API_URL}/api/analytics/pnl?period=${selectedPeriod}`, {
           credentials: "include",
         }),
@@ -108,6 +124,9 @@ export default function Dashboard() {
         fetch(`${API_URL}/api/analytics/symbols`, {
           credentials: "include",
         }),
+        fetch(`${API_URL}/api/analytics/emotions`, {
+          credentials: "include",
+        }),
       ]);
 
       if (pnlRes.status === 401) {
@@ -115,15 +134,17 @@ export default function Dashboard() {
         return navigate("/login");
       }
 
-      const [pnlData, winRateData, symbolsData] = await Promise.all([
+      const [pnlData, winRateData, symbolsData, emotionsData] = await Promise.all([
         pnlRes.json(),
         winRateRes.json(),
         symbolsRes.json(),
+        emotionsRes.json(),
       ]);
 
       setPnlData(pnlData.data || []);
       setWinRate(winRateData.data || null);
       setSymbols(symbolsData.data || []);
+      setEmotions(emotionsData.data || { byEmotion: [], mostCommonWin: null, mostCommonLoss: null });
     } catch (err) {
       console.error("Analytics fetch error:", err);
       setError("Failed to load analytics. Please try again.");
@@ -319,6 +340,85 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* EMOTION INSIGHTS */}
+        <section>
+          <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">
+            Emotion Insights
+          </h2>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+            {loading ? (
+              <div className="px-6 py-12 text-center text-zinc-600 text-sm">
+                Loading...
+              </div>
+            ) : !emotions || emotions.byEmotion.length === 0 ? (
+              <div className="px-6 py-12 text-center text-zinc-600 text-sm">
+                No emotion data yet. Start adding emotional state to your trades.
+              </div>
+            ) : (
+              <div className="p-6 space-y-6">
+
+                {/* Most common win/loss emotions */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-xl px-5 py-4">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+                      Most Common Before a Win
+                    </p>
+                    {emotions.mostCommonWin ? (
+                      <p className="text-lg font-semibold text-emerald-400">
+                        {EMOTION_EMOJIS[emotions.mostCommonWin]} {emotions.mostCommonWin}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-zinc-600">No data</p>
+                    )}
+                  </div>
+
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-xl px-5 py-4">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">
+                      Most Common Before a Loss
+                    </p>
+                    {emotions.mostCommonLoss ? (
+                      <p className="text-lg font-semibold text-red-400">
+                        {EMOTION_EMOJIS[emotions.mostCommonLoss]} {emotions.mostCommonLoss}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-zinc-600">No data</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Win rate by emotion table */}
+                <div>
+                  <div className="grid grid-cols-4 gap-4 px-4 py-3 border-b border-zinc-800 text-xs text-zinc-500 uppercase tracking-wider">
+                    <span>Emotion</span>
+                    <span className="text-right">Trades</span>
+                    <span className="text-right">Wins</span>
+                    <span className="text-right">Win Rate</span>
+                  </div>
+
+                  {emotions.byEmotion.map((e) => (
+                    <div
+                      key={e.emotion}
+                      className="grid grid-cols-4 gap-4 px-4 py-3 border-b border-zinc-800 last:border-0 text-sm items-center"
+                    >
+                      <span className="text-zinc-200">
+                        {EMOTION_EMOJIS[e.emotion]} {e.emotion}
+                      </span>
+                      <span className="text-right text-zinc-400">{e.total}</span>
+                      <span className="text-right text-zinc-400">{e.wins}</span>
+                      <span className={`text-right font-medium ${
+                        e.winRate >= 50 ? "text-emerald-400" : "text-red-400"
+                      }`}>
+                        {e.winRate}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            )}
+          </div>
+        </section>
       </main>
     </div>
   );

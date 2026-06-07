@@ -168,6 +168,85 @@ const AnalyticsService = {
 
     return result;
   },
+
+  /**
+   * Emotion analytics — win rate grouped by emotion_before
+   * and most common emotions for winning vs losing trades
+   *
+   * @param {string} userId
+   * @returns {Object} {
+   *   byEmotion: [{ emotion, total, wins, winRate }],
+   *   mostCommonWin: string | null,
+   *   mostCommonLoss: string | null
+   * }
+   */
+  getEmotionAnalytics: async (userId) => {
+    logger.debug("Calculating emotion analytics", { userId });
+
+    const trades = await AnalyticsRepository.getEmotionTrades(userId);
+
+    if (trades.length === 0) {
+      return {
+        byEmotion: [],
+        mostCommonWin: null,
+        mostCommonLoss: null,
+      };
+    }
+
+    // =========================
+    // Group by emotion_before
+    // =========================
+    const emotionMap = {};
+    const winEmotions = {};
+    const lossEmotions = {};
+
+    for (const trade of trades) {
+      const pnl = calculateTradePnL(trade);
+      const isWin = pnl > 0;
+      const isLoss = pnl < 0;
+      const emotion = trade.emotion_before;
+
+      if (!emotion) continue;
+
+      if (!emotionMap[emotion]) {
+        emotionMap[emotion] = { emotion, total: 0, wins: 0 };
+      }
+
+      emotionMap[emotion].total += 1;
+      if (isWin) emotionMap[emotion].wins += 1;
+      if (isWin) winEmotions[emotion] = (winEmotions[emotion] || 0) + 1;
+      if (isLoss) lossEmotions[emotion] = (lossEmotions[emotion] || 0) + 1;
+    }
+
+    const byEmotion = Object.values(emotionMap)
+      .map((e) => ({
+        emotion: e.emotion,
+        total: e.total,
+        wins: e.wins,
+        winRate: Math.round((e.wins / e.total) * 10000) / 100,
+      }))
+      .sort((a, b) => b.winRate - a.winRate);
+
+    // Most common emotion before a win
+    const mostCommonWin =
+      Object.entries(winEmotions).length > 0
+        ? Object.entries(winEmotions).sort((a, b) => b[1] - a[1])[0][0]
+        : null;
+
+    // Most common emotion before a loss
+    const mostCommonLoss =
+      Object.entries(lossEmotions).length > 0
+        ? Object.entries(lossEmotions).sort((a, b) => b[1] - a[1])[0][0]
+        : null;
+
+    logger.debug("Emotion analytics calculated", {
+      emotionCount: byEmotion.length,
+      mostCommonWin,
+      mostCommonLoss,
+    });
+
+    return { byEmotion, mostCommonWin, mostCommonLoss };
+  },
 };
 
 module.exports = AnalyticsService;

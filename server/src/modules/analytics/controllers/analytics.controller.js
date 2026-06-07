@@ -82,6 +82,24 @@ const AnalyticsController = {
       return sendError(res, err);
     }
   },
+
+  /**
+   * GET /api/analytics/emotions
+   */
+  getEmotionAnalytics: async (req, res) => {
+    logger.info("GET /api/analytics/emotions request received");
+
+    try {
+      const data = await AnalyticsService.getEmotionAnalytics(req.userId);
+
+      logger.info("Emotion analytics response sent");
+
+      return sendSuccess(res, { data });
+    } catch (err) {
+      logger.error("Failed to fetch emotion analytics", { error: err.message });
+      return sendError(res, err);
+    }
+  },
 };
 
 module.exports = AnalyticsController;

@@ -15,5 +15,6 @@ const router = express.Router();
 router.get("/pnl", requireAuth, AnalyticsController.getPnLByPeriod);
 router.get("/win-rate", requireAuth, AnalyticsController.getWinRate);
 router.get("/symbols", requireAuth, AnalyticsController.getSymbolBreakdown);
+router.get("/emotions", requireAuth, AnalyticsController.getEmotionAnalytics);
 
 module.exports = router;
