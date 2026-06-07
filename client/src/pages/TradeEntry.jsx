@@ -18,6 +18,7 @@ import CloseTradeModal from "../components/CloseTradeModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import EditTradeModal from "../components/EditTradeModal";
 import JournalSection from "../components/JournalSection";
+import TradeDetailModal from "../components/TradeDetailModal";
 
 /**
  * =========================================================
@@ -103,6 +104,8 @@ export default function TradeEntry() {
   const [editingTrade, setEditingTrade]       = useState(null);
   const [editError, setEditError]             = useState("");
   const [editSubmitting, setEditSubmitting]   = useState(false);
+
+  const [viewingTrade, setViewingTrade] = useState(null);
 
   // =========================================================
   // LOGOUT
@@ -329,6 +332,9 @@ export default function TradeEntry() {
       // Remove row without re-fetch
       setTrades((prev) => prev.filter((t) => t.trade_id !== tradeId));
       setDeletingTrade(null);
+      if (viewingTrade?.trade_id === tradeId) {
+        setViewingTrade(null);
+      }
     } catch (err) {
       console.error("Delete trade error:", err);
       setDeleteError("Network error. Please try again.");
@@ -366,6 +372,10 @@ export default function TradeEntry() {
       );
 
       setEditingTrade(null);
+      // Keep detail view in sync
+      if (viewingTrade?.trade_id === tradeId) {
+        setViewingTrade(data.data);
+      }
     } catch (err) {
       console.error("Edit trade error:", err);
       setEditError("Network error. Please try again.");
@@ -652,12 +662,10 @@ export default function TradeEntry() {
                   const pnl = calculatePnL(t);
                   const isOpen = t.exit_price == null;
 
-                  console.log("entry_time raw:", t.entry_time);
-                  console.log("formatted:", formatDateTime(t.entry_time));
-
                   return (
                     <div
                       key={t.trade_id || `${t.symbol}-${t.entry_time}`}
+                      onClick={() => setViewingTrade(t)}
                       className="grid grid-cols-10 gap-4 px-6 py-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition text-sm items-center"
                     >
                       <span className="font-medium text-white">{t.symbol}</span>
@@ -714,6 +722,7 @@ export default function TradeEntry() {
                   return (
                     <div
                       key={t.trade_id || `${t.symbol}-${t.entry_time}`}
+                      onClick={() => setViewingTrade(t)}
                       className="px-4 py-4 border-b border-zinc-800 last:border-0 space-y-3"
                     >
                       {/* Top row — symbol, type, P&L */}
@@ -761,20 +770,20 @@ export default function TradeEntry() {
                       <div className="flex gap-2 pt-1">
                         {isOpen && (
                           <button
-                            onClick={() => { setCloseError(""); setClosingTrade(t); }}
+                            onClick={(e) => { e.stopPropagation(); setCloseError(""); setClosingTrade(t); }}
                             className="text-xs text-zinc-400 hover:text-emerald-400 border border-zinc-700 hover:border-emerald-500 rounded-md px-3 py-1.5 transition"
                           >
                             Close
                           </button>
                         )}
                         <button
-                          onClick={() => { setEditError(""); setEditingTrade(t); }}
+                          onClick={(e) => { e.stopPropagation(); setEditError(""); setEditingTrade(t); }}
                           className="text-xs text-zinc-400 hover:text-blue-400 border border-zinc-700 hover:border-blue-500 rounded-md px-3 py-1.5 transition"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={() => { setDeleteError(""); setDeletingTrade(t); }}
+                          onClick={(e) => { e.stopPropagation(); setDeleteError(""); setDeletingTrade(t); }}
                           className="text-xs text-zinc-400 hover:text-red-400 border border-zinc-700 hover:border-red-500 rounded-md px-3 py-1.5 transition"
                         >
                           Delete
@@ -817,6 +826,17 @@ export default function TradeEntry() {
             error={editError}
           />
         )}
+
+        {viewingTrade && (
+          <TradeDetailModal
+            trade={viewingTrade}
+            pnl={calculatePnL(viewingTrade)}
+            onClose={() => setViewingTrade(null)}
+            onEdit={() => { setViewingTrade(null); setEditError(""); setEditingTrade(viewingTrade); }}
+            onDelete={() => { setViewingTrade(null); setDeleteError(""); setDeletingTrade(viewingTrade); }}
+            onCloseTrade={() => { setViewingTrade(null); setCloseError(""); setClosingTrade(viewingTrade); }}
+          />
+        )} 
       </main>
     </div>
   );
