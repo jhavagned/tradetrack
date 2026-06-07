@@ -680,4 +680,114 @@ describe("Trade API", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("VALIDATION_ERROR");
   });
+
+  // =========================
+  // Test Case 1.22
+  // Create trade with emotions
+  // =========================
+  /**
+   * Validates that emotional state fields are persisted
+   * when provided on trade creation.
+   *
+   * EXPECTED:
+   * - HTTP 201
+   * - Returned trade includes emotion fields
+   */
+  it("creates a trade with emotional state", async () => {
+    const res = await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send({
+        ...openTrade(),
+        emotionBefore: "Calm",
+        emotionDuring: "Focused",
+        emotionAfter: "Confident",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.emotion_before).toBe("Calm");
+    expect(res.body.data.emotion_during).toBe("Focused");
+    expect(res.body.data.emotion_after).toBe("Confident");
+  });
+
+  // =========================
+  // Test Case 1.23
+  // Emotion fields are optional
+  // =========================
+  /**
+   * Validates that trades can be created without emotion fields.
+   *
+   * EXPECTED:
+   * - HTTP 201
+   * - Emotion fields are null
+   */
+  it("creates a trade without emotional state", async () => {
+    const res = await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send(openTrade());
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.emotion_before).toBeNull();
+    expect(res.body.data.emotion_during).toBeNull();
+    expect(res.body.data.emotion_after).toBeNull();
+  });
+
+  // =========================
+  // Test Case 1.24
+  // Invalid emotion value rejected
+  // =========================
+  /**
+   * Validates that an invalid emotion value returns 400.
+   *
+   * EXPECTED:
+   * - HTTP 400
+   * - error code VALIDATION_ERROR
+   */
+  it("rejects invalid emotion values", async () => {
+    const res = await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send({
+        ...openTrade(),
+        emotionBefore: "Happy",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  // =========================
+  // Test Case 1.25
+  // Edit trade updates emotions
+  // =========================
+  /**
+   * Validates that emotional state is updated when editing a trade.
+   *
+   * EXPECTED:
+   * - HTTP 200
+   * - Emotion fields reflect updated values
+   */
+  it("updates emotional state when editing a trade", async () => {
+    const trade = await createOpenTrade(cookie);
+
+    const res = await request(app)
+      .put(`/api/trades/${trade.trade_id}`)
+      .set("Cookie", cookie)
+      .send({
+        symbol: "AAPL",
+        type: "BUY",
+        entryPrice: 100,
+        quantity: 1,
+        entryTime: "2026-04-21T09:00:00Z",
+        emotionBefore: "Anxious",
+        emotionDuring: "Calm",
+        emotionAfter: "Confident",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.emotion_before).toBe("Anxious");
+    expect(res.body.data.emotion_during).toBe("Calm");
+    expect(res.body.data.emotion_after).toBe("Confident");
+  });
 });

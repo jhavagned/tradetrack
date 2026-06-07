@@ -95,6 +95,9 @@ const TradesService = {
       quantity: Number(tradeInput.quantity),
       notes: tradeInput.notes || null,
       strategy: tradeInput.strategy || null,
+      emotionBefore: tradeInput.emotionBefore || null,
+      emotionDuring: tradeInput.emotionDuring || null,
+      emotionAfter: tradeInput.emotionAfter || null,
     };
 
     // =========================
@@ -341,6 +344,9 @@ const TradesService = {
       strategy: tradeInput.strategy || null,
       tradeStatus,
       closedAt,
+      emotionBefore: tradeInput.emotionBefore || null,
+      emotionDuring: tradeInput.emotionDuring || null,
+      emotionAfter: tradeInput.emotionAfter || null,
     };
 
     // =========================

@@ -13,10 +13,11 @@ import {
   validateExitAfterEntry,
   validateExitFields
 } from "../utils/validation";
-import { formatCurrency, formatPrice, formatQuantity, formatDateTime } from "../utils/formatters";
+import { formatCurrency, formatPrice, formatQuantity, formatDateTime, toUTCString } from "../utils/formatters";
 import CloseTradeModal from "../components/CloseTradeModal";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import EditTradeModal from "../components/EditTradeModal";
+import JournalSection from "../components/JournalSection";
 
 /**
  * =========================================================
@@ -79,7 +80,10 @@ export default function TradeEntry() {
     entryTime: "",
     exitTime: "",
     notes: "",
-    strategy: ""
+    strategy: "",
+    emotionBefore: "",
+    emotionDuring: "",
+    emotionAfter:  "",
   });
 
   const [formError, setFormError] = useState("");
@@ -171,6 +175,10 @@ export default function TradeEntry() {
     }));
   };
 
+  const handleEmotionChange = (field, value) => {
+    setTrade((prev) => ({ ...prev, [field]: value }));
+  };
+
   /**
    * Submit trade to backend
    * Includes validation + safe state update
@@ -205,7 +213,12 @@ export default function TradeEntry() {
       type: trade.type.toUpperCase(),
       entryPrice: Number(trade.entryPrice),
       exitPrice: trade.exitPrice ? Number(trade.exitPrice) : null,
-      quantity: Number(trade.quantity)
+      quantity: Number(trade.quantity),
+      entryTime:     toUTCString(trade.entryTime),
+      exitTime:      toUTCString(trade.exitTime),
+      emotionBefore: trade.emotionBefore || null,
+      emotionDuring: trade.emotionDuring || null,
+      emotionAfter:  trade.emotionAfter  || null,
     };
 
     try {
@@ -244,7 +257,10 @@ export default function TradeEntry() {
         entryTime: "",
         exitTime: "",
         notes: "",
-        strategy: ""
+        strategy: "",
+        emotionBefore: "",
+        emotionDuring: "",
+        emotionAfter:  "",
       });
 
     } catch (err) {
@@ -576,6 +592,14 @@ export default function TradeEntry() {
                 </div>
               </div>
 
+              {/* JOURNAL SECTION */}
+              <JournalSection
+                emotionBefore={trade.emotionBefore}
+                emotionDuring={trade.emotionDuring}
+                emotionAfter={trade.emotionAfter}
+                onChange={handleEmotionChange}
+              />
+
               {/* VALIDATION ERROR */}
               {formError && (
                 <p className="text-sm text-red-400 bg-red-950 border border-red-800 rounded-lg px-4 py-2.5">
@@ -627,6 +651,9 @@ export default function TradeEntry() {
                 trades.filter(Boolean).map((t) => {
                   const pnl = calculatePnL(t);
                   const isOpen = t.exit_price == null;
+
+                  console.log("entry_time raw:", t.entry_time);
+                  console.log("formatted:", formatDateTime(t.entry_time));
 
                   return (
                     <div
@@ -721,6 +748,14 @@ export default function TradeEntry() {
                         <span className="text-zinc-500">Qty </span>
                         <span className="text-zinc-300">{formatQuantity(t.quantity)}</span>
                       </div>
+
+                      {(t.emotion_before || t.emotion_during || t.emotion_after) && (
+                        <div className="flex flex-wrap gap-2 text-xs text-zinc-400 pt-1">
+                          {t.emotion_before && <span>Before: {t.emotion_before}</span>}
+                          {t.emotion_during && <span>During: {t.emotion_during}</span>}
+                          {t.emotion_after  && <span>After: {t.emotion_after}</span>}
+                        </div>
+                      )}
 
                       {/* Actions */}
                       <div className="flex gap-2 pt-1">

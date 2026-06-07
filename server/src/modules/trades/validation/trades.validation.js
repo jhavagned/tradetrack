@@ -1,5 +1,7 @@
 // /server/src/modules/trades/validation/trades.validation.js
 
+const { VALID_EMOTIONS } = require("../../../utils/constants");
+
 /**
  * Trade type enum
  * Shared across validation/service layers
@@ -117,6 +119,24 @@ function validateTrade(trade) {
       "exitTime",
     );
   }
+
+  // =========================
+  // Emotion validation
+  // =========================
+  const emotionBeforeError = validateEmotion(
+    trade.emotionBefore,
+    "emotionBefore",
+  );
+  if (emotionBeforeError) return emotionBeforeError;
+
+  const emotionDuringError = validateEmotion(
+    trade.emotionDuring,
+    "emotionDuring",
+  );
+  if (emotionDuringError) return emotionDuringError;
+
+  const emotionAfterError = validateEmotion(trade.emotionAfter, "emotionAfter");
+  if (emotionAfterError) return emotionAfterError;
 
   return null;
 }
@@ -264,6 +284,42 @@ function validateEditTrade(trade) {
     );
   }
 
+  // =========================
+  // Emotion validation
+  // =========================
+  const emotionBeforeError = validateEmotion(
+    trade.emotionBefore,
+    "emotionBefore",
+  );
+  if (emotionBeforeError) return emotionBeforeError;
+
+  const emotionDuringError = validateEmotion(
+    trade.emotionDuring,
+    "emotionDuring",
+  );
+  if (emotionDuringError) return emotionDuringError;
+
+  const emotionAfterError = validateEmotion(trade.emotionAfter, "emotionAfter");
+  if (emotionAfterError) return emotionAfterError;
+
+  return null;
+}
+
+/**
+ * Validates a single emotion field value
+ *
+ * @param {string} value - The emotion value to validate
+ * @param {string} field - The field name for the error message
+ * @returns {null | { message: string, field: string }}
+ */
+function validateEmotion(value, field) {
+  if (value == null || value === "") return null;
+  if (!VALID_EMOTIONS.includes(value)) {
+    return createValidationError(
+      `Invalid emotion value for ${field}. Must be one of: ${VALID_EMOTIONS.join(", ")}`,
+      field,
+    );
+  }
   return null;
 }
 
@@ -271,5 +327,6 @@ module.exports = {
   validateTrade,
   validateCloseTrade,
   validateEditTrade,
+  validateEmotion,
   TRADE_TYPES,
 };

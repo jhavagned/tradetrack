@@ -7,6 +7,8 @@ import {
   validateExitAfterEntry,
   validateExitFields,
 } from "../utils/validation";
+import { toLocalDateTimeInput, toUTCString } from "../utils/formatters";
+import JournalSection from "./JournalSection";
 
 /**
  * Modal to edit an existing trade
@@ -28,11 +30,14 @@ export default function EditTradeModal({ trade, onConfirm, onCancel, isSubmittin
     type:       trade.trade_type   || "BUY",
     entryPrice: trade.entry_price  || "",
     exitPrice:  trade.exit_price   || "",
-    entryTime:  trade.entry_time   ? trade.entry_time.slice(0, 16) : "",
-    exitTime:   trade.exit_time    ? trade.exit_time.slice(0, 16)  : "",
+    entryTime:  toLocalDateTimeInput(trade.entry_time),
+    exitTime:   toLocalDateTimeInput(trade.exit_time),
     quantity:   trade.quantity     || "",
     notes:      trade.notes        || "",
     strategy:   trade.strategy     || "",
+    emotionBefore: trade.emotion_before || "",
+    emotionDuring: trade.emotion_during || "",
+    emotionAfter:  trade.emotion_after  || "",
   });
 
   const [formError, setFormError] = useState("");
@@ -40,6 +45,10 @@ export default function EditTradeModal({ trade, onConfirm, onCancel, isSubmittin
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEmotionChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
@@ -68,6 +77,11 @@ export default function EditTradeModal({ trade, onConfirm, onCancel, isSubmittin
       entryPrice: Number(form.entryPrice),
       exitPrice:  form.exitPrice ? Number(form.exitPrice) : null,
       quantity:   Number(form.quantity),
+      entryTime:     toUTCString(form.entryTime),
+      exitTime:      toUTCString(form.exitTime),
+      emotionBefore: form.emotionBefore || null,
+      emotionDuring: form.emotionDuring || null,
+      emotionAfter:  form.emotionAfter  || null,
     });
   };
 
@@ -190,6 +204,15 @@ export default function EditTradeModal({ trade, onConfirm, onCancel, isSubmittin
               />
             </div>
           </div>
+
+          {/* JOURNAL */}
+          <JournalSection
+            emotionBefore={form.emotionBefore}
+            emotionDuring={form.emotionDuring}
+            emotionAfter={form.emotionAfter}
+            onChange={handleEmotionChange}
+            defaultOpen={!!(trade.emotion_before || trade.emotion_during || trade.emotion_after)}
+          />
         </div>
 
         {(formError || error) && (

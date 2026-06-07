@@ -47,7 +47,7 @@ const TradesRepository = {
   /**
    * Persist a new trade
    *
-   * @param {Object} trade - { userId, symbol, tradeType, entryPrice, exitPrice, entryTime, exitTime, quantity, notes, strategy }
+   * @param {Object} trade - { userId, symbol, tradeType, entryPrice, exitPrice, entryTime, exitTime, quantity, notes, strategy, emotionBefore, emotionDuring, emotionAfter }
    * @returns {Object} - The newly created trade row
    */
   create: async ({
@@ -61,6 +61,9 @@ const TradesRepository = {
     quantity,
     notes,
     strategy,
+    emotionBefore,
+    emotionDuring,
+    emotionAfter,
   }) => {
     logger.debug("Inserting new trade", { userId, symbol });
 
@@ -70,8 +73,8 @@ const TradesRepository = {
 
     try {
       const { rows } = await query(
-        `INSERT INTO trades (user_id, symbol, trade_type, entry_price, exit_price, entry_time, exit_time, quantity, trade_status, closed_at, notes, strategy)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        `INSERT INTO trades (user_id, symbol, trade_type, entry_price, exit_price, entry_time, exit_time, quantity, trade_status, closed_at, notes, strategy, emotion_before, emotion_during, emotion_after)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *`,
         [
           userId,
@@ -86,6 +89,9 @@ const TradesRepository = {
           closedAt,
           notes || null,
           strategy || null,
+          emotionBefore || null,
+          emotionDuring || null,
+          emotionAfter || null,
         ],
       );
 
@@ -189,6 +195,9 @@ const TradesRepository = {
       strategy,
       tradeStatus,
       closedAt,
+      emotionBefore,
+      emotionDuring,
+      emotionAfter,
     },
   ) => {
     logger.debug("Updating trade in database", { tradeId });
@@ -206,8 +215,11 @@ const TradesRepository = {
             notes        = $8,
             strategy     = $9,
             trade_status = $10,
-            closed_at    = $11
-        WHERE trade_id = $12
+            closed_at    = $11,
+            emotion_before = $12,
+            emotion_during = $13,
+            emotion_after  = $14
+        WHERE trade_id = $15
         RETURNING *`,
         [
           symbol,
@@ -221,6 +233,9 @@ const TradesRepository = {
           strategy || null,
           tradeStatus,
           closedAt,
+          emotionBefore || null,
+          emotionDuring || null,
+          emotionAfter || null,
           tradeId,
         ],
       );
