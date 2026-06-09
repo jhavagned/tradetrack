@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import TradeEntry from "./pages/TradeEntry";
 import Dashboard from "./pages/Dashboard";
+import Watchlist from "./pages/Watchlist";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
@@ -76,6 +77,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/watchlist"
+          element={
+            <ProtectedRoute>
+              <Watchlist />
             </ProtectedRoute>
           }
         />

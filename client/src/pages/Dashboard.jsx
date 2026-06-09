@@ -180,6 +180,12 @@ export default function Dashboard() {
             >
               Trade Log
             </Link>
+            <Link
+              to="/watchlist"
+              className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 sm:px-4 py-2 transition"
+            >
+              Watchlist
+            </Link>
             <button
               onClick={handleLogout}
               className="text-sm text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-3 sm:px-4 py-2 transition"

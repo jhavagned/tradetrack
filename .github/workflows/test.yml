@@ -130,6 +130,7 @@ jobs:
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/001_initial_schema.sql
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/002_add_entry_exit_time_to_trades.sql
           psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/003_add_emotions_to_trades.sql
+          psql -h localhost -U postgres -d tradetrack_test -f server/src/db/migrations/004_create_watchlist_items.sql
 
       # --------------------------------------------------------
       # Run the Jest test suite.

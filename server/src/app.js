@@ -9,6 +9,7 @@ const requestLogger = require("./middleware/requestLogger.middleware");
 const authRoutes = require("./modules/auth/routes/auth.routes");
 const tradeRoutes = require("./modules/trades/routes/trades.route");
 const analyticsRoutes = require("./modules/analytics/routes/analytics.routes");
+const watchlistRoutes = require("./modules/watchlist/routes/watchlist.routes");
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use(requestLogger);
 app.use("/api/auth", authRoutes);
 app.use("/api/trades", tradeRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/watchlist", watchlistRoutes);
 
 /**
  * HEALTH CHECK
