@@ -10,6 +10,8 @@ import { formatCurrency } from "../utils/formatters";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -39,6 +41,20 @@ import { useNavigate, Link } from "react-router-dom";
 // Custom Tooltip for chart
 // =========================
 const PnLTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+
+  const value = payload[0].value;
+  const color = value >= 0 ? "text-emerald-400" : "text-red-400";
+
+  return (
+    <div className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm">
+      <p className="text-zinc-400 mb-1">{label}</p>
+      <p className={`font-semibold ${color}`}>{formatCurrency(value)}</p>
+    </div>
+  );
+};
+
+const EquityTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
 
   const value = payload[0].value;
@@ -82,6 +98,7 @@ export default function Dashboard() {
   const [winRate, setWinRate] = useState(null);
   const [symbols, setSymbols] = useState([]);
   const [emotions, setEmotions] = useState({ byEmotion: [], mostCommonWin: null, mostCommonLoss: null });
+  const [equityCurve, setEquityCurve] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -114,7 +131,7 @@ export default function Dashboard() {
     setError("");
 
     try {
-      const [pnlRes, winRateRes, symbolsRes, emotionsRes] = await Promise.all([
+      const [pnlRes, winRateRes, symbolsRes, emotionsRes, equityRes] = await Promise.all([
         fetch(`${API_URL}/api/analytics/pnl?period=${selectedPeriod}`, {
           credentials: "include",
         }),
@@ -127,6 +144,9 @@ export default function Dashboard() {
         fetch(`${API_URL}/api/analytics/emotions`, {
           credentials: "include",
         }),
+        fetch(`${API_URL}/api/analytics/equity-curve`, { 
+          credentials: "include" 
+        }),
       ]);
 
       if (pnlRes.status === 401) {
@@ -134,17 +154,19 @@ export default function Dashboard() {
         return navigate("/login");
       }
 
-      const [pnlData, winRateData, symbolsData, emotionsData] = await Promise.all([
+      const [pnlData, winRateData, symbolsData, emotionsData, equityData] = await Promise.all([
         pnlRes.json(),
         winRateRes.json(),
         symbolsRes.json(),
         emotionsRes.json(),
+        equityRes.json(),
       ]);
 
       setPnlData(pnlData.data || []);
       setWinRate(winRateData.data || null);
       setSymbols(symbolsData.data || []);
       setEmotions(emotionsData.data || { byEmotion: [], mostCommonWin: null, mostCommonLoss: null });
+      setEquityCurve(equityData.data || []);
     } catch (err) {
       console.error("Analytics fetch error:", err);
       setError("Failed to load analytics. Please try again.");
@@ -237,6 +259,59 @@ export default function Dashboard() {
             </div>
           </section>
         )}
+
+        {/* EQUITY CURVE */}
+        <section>
+          <h2 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-4">
+            Equity Curve
+          </h2>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+            {loading ? (
+              <div className="h-64 flex items-center justify-center text-zinc-600 text-sm">
+                Loading...
+              </div>
+            ) : equityCurve.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-zinc-600 text-sm">
+                No closed trades yet. Close some trades to see your equity curve.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart
+                  data={equityCurve}
+                  margin={{ top: 4, right: 4, left: 8, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fill: "#71717a", fontSize: 11 }}
+                    axisLine={{ stroke: "#3f3f46" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: "#71717a", fontSize: 11 }}
+                    axisLine={{ stroke: "#3f3f46" }}
+                    tickLine={false}
+                    tickFormatter={(v) => `$${v.toLocaleString()}`}
+                  />
+                  <Tooltip content={<EquityTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulativePnl"
+                    stroke={
+                      equityCurve[equityCurve.length - 1]?.cumulativePnl >= 0
+                        ? "#34d399"
+                        : "#f87171"
+                    }
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: "#34d399" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
 
         {/* P&L OVER TIME */}
         <section>
