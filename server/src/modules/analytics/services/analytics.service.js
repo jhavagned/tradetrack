@@ -247,6 +247,53 @@ const AnalyticsService = {
 
     return { byEmotion, mostCommonWin, mostCommonLoss };
   },
+
+  /**
+   * Equity curve — cumulative P&L over time
+   *
+   * Each point represents the running total of all closed trade P&L
+   * up to and including that date.
+   *
+   * @param {string} userId
+   * @returns {Array} [{ date, cumulativePnl }]
+   */
+  getEquityCurve: async (userId) => {
+    logger.debug("Calculating equity curve", { userId });
+
+    const trades = await AnalyticsRepository.getEquityCurveData(userId);
+
+    if (trades.length === 0) return [];
+
+    let cumulativePnl = 0;
+    const result = [];
+
+    for (const trade of trades) {
+      const pnl = calculateTradePnL(trade);
+      cumulativePnl += pnl;
+
+      const date = new Date(trade.closed_at).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      // If multiple trades closed on the same day, update the last point
+      // rather than adding a new one — keeps the chart clean
+      if (result.length > 0 && result[result.length - 1].date === date) {
+        result[result.length - 1].cumulativePnl =
+          Math.round(cumulativePnl * 100) / 100;
+      } else {
+        result.push({
+          date,
+          cumulativePnl: Math.round(cumulativePnl * 100) / 100,
+        });
+      }
+    }
+
+    logger.debug("Equity curve calculated", { points: result.length });
+
+    return result;
+  },
 };
 
 module.exports = AnalyticsService;

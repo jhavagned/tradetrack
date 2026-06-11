@@ -16,5 +16,6 @@ router.get("/pnl", requireAuth, AnalyticsController.getPnLByPeriod);
 router.get("/win-rate", requireAuth, AnalyticsController.getWinRate);
 router.get("/symbols", requireAuth, AnalyticsController.getSymbolBreakdown);
 router.get("/emotions", requireAuth, AnalyticsController.getEmotionAnalytics);
+router.get("/equity-curve", requireAuth, AnalyticsController.getEquityCurve);
 
 module.exports = router;

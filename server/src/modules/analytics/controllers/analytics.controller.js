@@ -100,6 +100,24 @@ const AnalyticsController = {
       return sendError(res, err);
     }
   },
+
+  /**
+   * GET /api/analytics/equity-curve
+   */
+  getEquityCurve: async (req, res) => {
+    logger.info("GET /api/analytics/equity-curve request received");
+
+    try {
+      const data = await AnalyticsService.getEquityCurve(req.userId);
+
+      logger.info("Equity curve response sent", { points: data.length });
+
+      return sendSuccess(res, { data });
+    } catch (err) {
+      logger.error("Failed to fetch equity curve", { error: err.message });
+      return sendError(res, err);
+    }
+  },
 };
 
 module.exports = AnalyticsController;

@@ -73,6 +73,35 @@ const AnalyticsRepository = {
 
     return rows;
   },
+
+  /**
+   * Fetch closed trades for equity curve calculation
+   * Returns trade P&L components ordered by closed_at
+   *
+   * @param {string} userId
+   * @returns {Array} closed trades with fields needed for equity curve
+   */
+  getEquityCurveData: async (userId) => {
+    logger.debug("Fetching equity curve data", { userId });
+
+    const { rows } = await query(
+      `SELECT
+        symbol,
+        trade_type,
+        entry_price,
+        exit_price,
+        quantity,
+        closed_at
+      FROM trades
+      WHERE user_id      = $1
+        AND trade_status = 'closed'
+        AND exit_price   IS NOT NULL
+      ORDER BY closed_at ASC`,
+      [userId],
+    );
+
+    return rows;
+  },
 };
 
 module.exports = AnalyticsRepository;

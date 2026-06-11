@@ -292,4 +292,59 @@ describe("Analytics API", () => {
 
     expect(res.status).toBe(401);
   });
+
+  // =========================
+  // Test Case 4.13
+  // Equity curve — empty state
+  // =========================
+  /**
+   * Validates that equity curve returns empty array
+   * when no closed trades exist.
+   */
+  it("returns empty array for equity curve when no closed trades exist", async () => {
+    const res = await request(app)
+      .get("/api/analytics/equity-curve")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  // =========================
+  // Test Case 4.14
+  // Equity curve — with data
+  // =========================
+  /**
+   * Validates that equity curve returns cumulative P&L points.
+   * AAPL BUY entry 100 exit 150 qty 1 = $50 profit
+   * Cumulative after one trade = $50
+   */
+  it("returns correct cumulative P&L for equity curve", async () => {
+    await request(app)
+      .post("/api/trades")
+      .set("Cookie", cookie)
+      .send(validTrade());
+
+    const res = await request(app)
+      .get("/api/analytics/equity-curve")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.length).toBeGreaterThan(0);
+    expect(res.body.data[0].date).toBeDefined();
+    expect(res.body.data[0].cumulativePnl).toBe(50);
+  });
+
+  // =========================
+  // Test Case 4.15
+  // Equity curve — auth protection
+  // =========================
+  /**
+   * Validates that equity curve requires authentication.
+   */
+  it("returns 401 for unauthenticated equity curve request", async () => {
+    const res = await request(app).get("/api/analytics/equity-curve");
+
+    expect(res.status).toBe(401);
+  });
 });
